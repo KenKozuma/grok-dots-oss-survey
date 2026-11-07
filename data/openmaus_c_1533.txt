@@ -1,0 +1,13 @@
+### #1533 AdityaUmale [2026-10-15T07:00:37Z]
+Checked on current main (c2cf30127): this is fixed by #1401 (abed2aa68, "let Full access stop the asking on OpenAI-compatible engines"), which shipped in v0.1.85, one release after the 0.1.84 build in this report. server/approval-mode.test.ts asserts that harness-implemented Full is offered on openai-compat, and it passes on main. I think this can be closed. @KaiZah-maker, if you still see Allow/Deny cards at Full access on 0.1.85 or later, please say which version.
+
+### #1533 mohitnigah786-a11y [2026-10-19T06:13:44Z]
+Verified on current main (1da83432c): this is fixed by #1401 and still green. No residual case found — skipping a fix.
+
+Evidence:
+- `shared/approval-mode.ts:16-22`: `supportsApprovalMode(kind, "full")` now returns true for every driver, so `approvalModeForTurn` no longer downgrades openai-compat to ask.
+- `server/drivers/openai-chat.ts:761-762`: under Full the tool gate is bypassed (`turn.approvalMode === "full" || ...`), so no Allow/Deny card is raised; `ask_user` and safety-floor blocks still reach a human by design.
+- Tests green on main: `server/approval-mode.test.ts` 26/26 (incl. "offers harness-implemented Full on openai-compat") and `server/drivers/openai-chat.test.ts` 49/49 (incl. "answers for the person under Full access, so no card is raised" with the Ask control "holds a card for every tool call when the bot is on Ask").
+
+Suggests this can be closed. If anyone still sees per-tool cards at Full on 0.1.85+, please say which version and whether the card is a permission card or ask_user/floor block.
+

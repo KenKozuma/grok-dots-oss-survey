@@ -1,0 +1,25 @@
+### #3264 guhcostan [2026-10-21T21:15:48Z]
+Concrete example from the iOS lock screen, to make the problem visible:
+
+- Four Live Activities were shown at once, each titled "<bot> is working", with a raw internal status under it, for example `OpenCode is waiting on its model: no reply for 62 s`. The person has to scan all of them to find the one that needs them.
+- A finished intermediate reply sent a "done" banner while the overall task was still going.
+
+What I'd expect from the change: one Live Activity at a time, chosen by priority (needs you > failed > working > finished unread), and the internal model-wait status should not be used as a title or a row label, only a short state.
+
+Happy to split this into the harness ranking first (this repo) and the iOS rendering as a follow-up, as the body says.
+
+
+### #3264 hadan8977 [2026-10-24T05:04:06Z]
+I traced the "done" banner from guhcostan's example through the server, to see where it comes from. On main, a delegated task produces this sequence (it's what `server/notification-routing.e2e.test.ts` asserts):
+
+1. When the bot hands the work off, its short reply ("Mira is running the suite.") is the turn's final message, so it sends a **done** notification, even though nothing is finished yet.
+2. When the teammate settles, a "Results in from Mira" delegation-settled event fires.
+3. The bot's real final answer after reviewing the result only marks the thread unread. **No notification.**
+
+So the one notification you get is the early one, and the actual result arrives silently.
+
+Part of this looks intentional: a741103e8 says the review answer adds no notification ("a quiet incident review stays quiet"), and 203d6ade4 says "the settle itself is quiet by design". I don't want to undo that without asking.
+
+Would you be open to a small change that skips the "done" notification when a turn ends by handing work off, and notifies once when the reviewed final answer lands? Or would you prefer to keep it as it is and handle this in the per-thread mute work (#3333)? If the first option sounds right, I'm happy to put up a PR with a test.
+
+

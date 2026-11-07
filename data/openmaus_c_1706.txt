@@ -1,0 +1,1685 @@
+### #1706 shuhei-suzuki [2026-09-23T07:41:14Z]
+### 🔍 [Grok/grok-4.6-xhigh] 要件レビュー
+
+### 🔍 Requirements review
+
+**Verdict:** Request changes.
+
+Read `docs/requirements/issue-1706-requirements.md` and checked it against current code in `ios/Sources/CompanionCore/Markdown.swift`, `ios/App/MarkdownText.swift`, `ios/App/ChatView.swift` (`parsedTable` / `StreamingBubble`), `ios/App/Cards/SQLResultTableView.swift`, `ios/App/AttachmentViews.swift` (`FilePreviewView`), `ios/Sources/CompanionCore/Walkie.swift`, `ios/Tests/CompanionCoreTests/MarkdownTests.swift`, `ios/Tests/CompanionCoreTests/WalkieTests.swift`, `ios/App/ThreadPreview.json`, `ios/Package.swift`, `src/lib/markdown-tables.ts`, `src/components/ChatMarkdown.tsx`, `src/components/ChatMarkdown.test.ts`, `android/core/src/main/kotlin/com/openmausbot/companion/core/Markdown.kt`, and `android/core/src/main/kotlin/com/openmausbot/companion/core/Transcript.kt`. Did not read `docs/design/issue-1706-design.md`. Did not run `gh`. Did not edit files.
+
+The document is specific enough that a design can be tested (concrete strings in acceptance 3–7). Several gates still accept today’s product, and two claims about current desktop/iOS code are false.
+
+---
+
+### Critical
+
+**C1. Acceptance 11 is true of today’s SQL card plus a bullet, so the app-level gate has no fail state.**
+
+Hits: *“An offline preview transcript that contains a table cell and a task item shows that cell text and item text, and does not show the raw delimiter line.”* Also constraints: *“Checks use the Swift package and the offline thread preview.”*
+
+`ThreadPreview.json` currently has no table and no task item (`preview-gmail-reply` is plain prose). Acceptance 11 never requires those two things to live in **one** message, never forbids `SQLResultTableView`, never forbids visible `[ ]` / `[x]`, and never requires header case or alignment.
+
+Today, a whole-message pipe table already becomes `SQLResultTableView` (`ChatView.swift` `parsedTable` at 1516–1530, drawn at 1597–1598). That card prints cell text and never prints the delimiter row. A second message `- [x] done` already becomes a bullet whose text still contains `[x] done` (`Markdown.listItem` treats `- ` as a bullet and leaves `[x] done` as item text). That fixture would “show cell text and item text” and “not show the raw delimiter line.”
+
+Acceptance 2 is the only sentence that names `SQLResultTableView`, and `swift test` does not build `App/` (`ios/Package.swift` product is `CompanionCore` only; `ios/TESTING.md` stage 1). The preview check is therefore the only named app-target behavior gate, and it does not fail the current renderer.
+
+---
+
+### High
+
+**H1. “Two repairs desktop already applies” is false; the omitted third repair is the Acc 1 shape.**
+
+Hits: Scope *“the two repairs desktop already applies (a table welded onto one line, and a delimiter whose width does not match the header).”* Acceptance 1: *“A bot message with prose, then a table, then prose shows the prose and a table.”*
+
+`src/lib/markdown-tables.ts` `repairParagraph` does three source rewrites, plus a skip:
+
+1. Welded one-line split (`splitInlineTable`, including a blank line above when needed).
+2. Insert a blank line so a table can start after prose (`out.splice` at 124–126). Comment on 120–121: without that blank line GFM treats the header as a lazy continuation and the table never parses.
+3. Rewrite a delimiter whose width does not match the header (`fitDelimiter` at 128–131).
+4. Skip any paragraph that contains `` ` `` or `\` (155).
+
+Desktop tests pin the combined case Acc 1 does not: `ChatMarkdown.test.ts` *“renders a table that arrived welded onto one line”* uses `"Lead-in prose\n| A | B | |---|---| | 1 | 2 |"`. `markdown-tables.test.ts` *“repairs the run-on research table verbatim from a bot message”* is prose immediately followed by a nine-column table whose delimiter is one cell short.
+
+An implementer who ports the two named repairs and then parses with GFM interrupt rules will leave Acc 1’s common “prose\\ntable” message as one paragraph. Current iOS `Markdown.blocks` already joins adjacent non-blank lines with spaces (lines 40–45), so that message is `|`-noise today; Acc 1 is exactly the case the omitted blank-line repair exists for, and Acc 1 never says whether a blank line is present.
+
+**H2. Acceptance 8 and 7 disagree about the letter `x` / `X`.**
+
+Hits: Acc 7 *“`- [ ] open` and `- [x] done` show an unchecked and a checked marker. The brackets are not the visible label.”* Acc 8 *“Growing a reply one character at a time never drops a letter or digit of cell text or item text. Structural markers (`|`, delimiter dashes, checkbox brackets) may be absent from the drawn text.”*
+
+Acc 8’s allowed drops are `|`, delimiter dashes, and checkbox **brackets**. The `x` / `X` inside `[x]` / `[X]` is a letter. Once Acc 7’s checked marker replaces `[x]`, that letter is gone from the drawn text. A streaming preservation test written to Acc 8’s letter will fail a correct Acc 7 implementation; a test that allows `x` to vanish will also allow dropping `x` from item text such as `- [ ] next`.
+
+Scope already includes `- [X]`. Acc 8 still does not list `x` / `X` as structural.
+
+**H3. Acc 10 says `swift test` covers Acc 1–9; the package never sees the view decisions those cases name.**
+
+Hits: Acc 10 *“`cd ios && swift test` covers the cases above.”* Acc 2 *“It does not use the SQL result card (`SQLResultTableView`).”* Acc 1 alignment *“the alignment the delimiter asked for.”* Acc 6 *“Cell text keeps inline markdown.”* Acc 7 *“The brackets are not the visible label.”* Constraints: *“The splitMemory flush started.
+ stays in `CompanionCore`”* / *“Drawing stays in the app target.”*
+
+`ios/Package.swift` builds `CompanionCore` and `CompanionCoreTests` only. `SQLResultTableView`, `MarkdownText`’s `switch`, `TextBubble.parsedTable`, and `FilePreviewView` live under `ios/App/`. Acc 10’s mutation sentence only mentions table recognition and task recognition. A Core parser that emits a `.table` block while `parsedTable` still wins in `TextBubble` (1595–1598) keeps the SQL card on settled whole-message tables. Streaming already uses `MarkdownText` (`StreamingBubble` 2329), so that miss also reintroduces the stream-to-settled snap Acc 2 is there to close.
+
+**H4. Acc 3’s empty-cell rule is untested by the only example it gives.**
+
+Hits: Acc 3 *“`| A | B | |---|---| | 1 | 2 |` on one line is a two-by-two table. An empty cell the model wrote stays empty. A trailing short row is padded with empty cells rather than dropped.”*
+
+That source string is the welded-row **boundary** empty that `splitInlineTable` discards (markdown-tables.ts 66–73). The sentence about an empty cell the model wrote is a different case. Desktop pins it as `| A | B | |---|---| | | 2 | | | 4 |` → `|  | 2 |` and `|  | 4 |`. An implementer who drops every empty cell, or who keeps the join empties as data cells, can still match the two-by-two example. Acc 3 also never says the trailing-short-row pad applies to a **multiline** ragged last row, which today’s `parsedTable` rejects (`rows.allSatisfy { $0.count == headers.count }`).
+
+**H5. Walkie speech is a second parser; Acc 9/10 never name it, and today’s `speakable` still voices delimiter dashes and `[x]`.**
+
+Hits: Scope *“Walkie reads the words in those blocks and does not read the delimiter row or the checkbox brackets.”* Acc 9 *“It does not contain a run of dashes from the delimiter, and it does not contain `[x]` or `[ ]`.”* Acc 10 mutation lines (tables / task items only).
+
+`Walkie.speakable` does not call `Markdown.blocks`. It strips a list prefix `[-*+]\s+`, then turns every `|` into `", "` (`Walkie.swift` 52–57). `|---|---|` becomes a spoken `---, ---.`. `- [x] done` becomes `[x] done.` after the list prefix is removed. `WalkieTests.swift` has no table or task case. `WalkieController.speak` runs `Walkie.utterances(Walkie.speakable(text))`. Changing only `Markdown.blocks` leaves Acc 9 failing in the product while Acc 10’s table/task tests stay green.
+
+Acc 9 also bans the substrings `[x]` and `[ ]` in the spoken string, and never mentions `[X]` even though scope includes `- [X]`. A global strip eats those characters when they are cell text; leaving `[X]` in speech fails the scope.
+
+---
+
+### Medium
+
+**M1. Purpose “look like the same reply on the desktop” over-commits relative to non-scope and to desktop drawing.**
+
+Hits: Purpose first sentence. Non-scope: images, mentions, thread-ref chips, syntax highlighting, spoilers, raw HTML.
+
+`ChatMarkdown.tsx` table cells are `text-start` / `align-top` (863–869) and never read GFM column align. Acc 1 still requires showing `:---`, `---:`, `:---:`. iOS would be required to draw alignment the desktop bubble does not. Mentions inside table cells are highlighted on desktop (`ChatMarkdown.test.ts` “lists and tables”); that is non-scope here, so “the same reply” is already false.
+
+**M2. Acc 2 plus non-scope “Copy CSV on an ordinary markdown table” retires the only iOS Copy CSV path, with no stated replacement.**
+
+Hits: Acc 2; non-scope *“Copy CSV on an ordinary markdown table.”*
+
+On iOS, `SQLResultTableView` is only used from `TextBubble.parsedTable`. There is no other SQL-result card. Acc 2 moves whole-message pipe tables onto the markdown table. That is also a loss of the card chrome (no speech bubble, “DATA TABLE”, row count, uppercased headers). Android `TranscriptCards.table` stays as-is (#1707). Fine if explicit; as written, a tester has no sentence that says Copy CSV disappearing from a whole-message table is the accepted outcome.
+
+**M3. Scope includes a Markdown file opened from a bubble; no acceptance names that path.**
+
+Hits: Scope *“including a reply that is still streaming and a Markdown file opened from a bubble.”*
+
+`FilePreviewView` already draws markdown through `MarkdownText` (`AttachmentViews.swift` 463–465), so a `MarkdownText` change would reach it. A ChatView-only special case (bypass `parsedTable`, draw tables only in the bubble) would leave `.md` previews on the old splitter. No fixture or check covers a downloaded markdown file.
+
+**M4. GFM tables without leading/trailing `|` are in scope as “GFM tables” and absent from every example.**
+
+Hits: Scope *“GFM tables: header, delimiter, body…”*; Acc 3–5 examples are all `| … |`.
+
+Desktop repair already accepts `A | B | C\n--- | ---\n1 | 2 | 3` (`markdown-tables.test.ts` “repairs delimiter rows without optional outer pipes”). Current iOS `parsedTable` requires every non-blank line to `hasPrefix("|") && hasSuffix("|")`. An implementer who copies that gate will miss a GFM table the desktop renders.
+
+**M5. Nested tables in lists/quotes have no fallback.**
+
+Hits: Non-scope *“Tables nested inside a list item or a blockquote.”*
+
+`Markdown.blocks` classifies `>` before list items, and list items before paragraphs. A quoted or indented table will become quote/list/paragraph source. The document never says those lines must remain visible as text (the existing “unparseable line ends up in a paragraph” rule in `Markdown.swift` 34–36). An implementer can drop them.
+
+**M6. Task-list markers besides `- [ ]` / `- [x]` / `- [X]`.**
+
+Hits: Scope *“Task lists: `- [ ]`, `- [x]`, and `- [X]`, including nested items.”* Purpose: same reply as desktop. Acc 7 examples are top-level `-` only.
+
+remark-gfm also treats `* [ ]`, `+ [ ]`, and `1. [ ]` as task items. Nested items are in scope and never appear in Acc 7. Acc 7 also omits `- [X]` even though scope includes it.
+
+**M7. Acc 6’s inline-code pipe is easy to miss because the only existing iOS splitter for pipes ignores backticks.**
+
+Hits: Acc 6 *“A pipe escaped as `\|`, and a pipe inside an inline code span, do not split the row.”* Acc 10 (no required example).
+
+`TextBubble.tableCells` and Android `TranscriptCards.cells` honor `\|` only. A row `| \`a|b\` | c |` would split today. Desktop GFM does not. Acc 10 never requires `` `a|b` `` or a welded paragraph that contains `` ` `` / `\`. Desktop repair **refuses** to weld those paragraphs (`/[`\\]/`). Acc 6 plus “apply the welded repair” without that skip will mis-split one-line tables that contain escapes or code spans.
+
+**M8. Blank lines inside a table: current iOS card and GFM disagree; Acc is silent.**
+
+Hits: Acc 2 *“A message that is only a pipe table uses that same table.”*
+
+`parsedTable` drops empty lines before the uniformity check. Android pins the iOS behavior: *“blank lines between rows do not break the table.”* GFM ends a table on a blank line. Acc 2 does not say which rule the “same table” follows, so switching to GFM changes existing whole-message tables that have a blank row.
+
+**M9. Wide tables have no overflow rule.**
+
+Hits: Acc 1 (a table is shown); purpose (match desktop).
+
+Desktop wraps tables in `overflow-x-auto` (`ChatMarkdown.tsx` 856–859). The motivating nine-column research table in `markdown-tables.test.ts` will not fit a phone bubble. `SQLResultTableView` already horizontal-scrolls. Acc 1 can be “met” by wrapping cells until the grid is unreadable.
+
+**M10. User-message tables have no negative acceptance.**
+
+Hits: Non-scope *“The person's own messages. They stay literal, as they do on the desktop.”*
+
+`TextBubble` already keeps `role == .user` on `Text`. Nothing in Acc 1–11 requires a user-authored pipe table or `- [ ]` to stay source. Easy to apply `Markdown.blocks` to both sides while Core tests only use bot-shaped strings.
+
+**M11. Acc 4 is only the short-delimiter half of `fitDelimiter`.**
+
+Hits: Acc 4 *“`| A | B | C |` followed by a shorter delimiter row is still a three-column table… missing cells are plain dashes.”*
+
+Desktop also **trims** a delimiter that is longer than the header (`|---|---|---|---|` → two cells). That is the same repair function. Acc 4 leaves the long-delimiter case free.
+
+**M12. Acc 11 does not name the preview thread that is on screen at launch.**
+
+Hits: Acc 11.
+
+`Session.swift` loads `ThreadPreview.json`; Pepper’s `activeLeafId` is `preview-gmail-reply`. Putting the table+task on `preview-icloud` or `preview-weekend` means a default `-threads-preview` launch never shows it. `ThreadPreviewPages.json` is a second transcript map. Acc 11 says “offline preview transcript” without saying which leaf.
+
+---
+
+### Low
+
+**L1. Purpose *“It does not draw GFM tables”* is imprecise.** Whole-message pipe tables already draw as a grid via `SQLResultTableView`. Mixed prose+table is the path that stays source (joined into one paragraph). The SQL-card claim in the same paragraph is accurate.
+
+**L2. Header+delimiter with no body.** GFM allows it. `parsedTable` requires `lines.count >= 3`, so today’s card refuses it. Acc never says whether that is a table.
+
+**L3. Extra cells on a body row.** Acc 3 pads a short trailing row and is silent on a long one. GFM drops extras.
+
+**L4. Delimiter hyphen count.** Desktop `DELIMITER_CELL` is `:?-+:?` (one or more). iOS `isTableSeparator` requires three hyphens after stripping colons. Acc 5’s `---` rule uses three. One- or two-dash delimiter cells are unspecified.
+
+**L5. `---` vs `Pros | Cons\\n---*`.** Desktop keeps `Pros | Cons\\n---` as a setext heading (`markdown-tables.test.ts` first preserve case). iOS already draws a paragraph plus a rule (`MarkdownTests.testHorizontalRules`). Acc 5 keeps `---` as a rule, which is the current iOS behavior and not desktop. Fine if named; today it sits under “look like desktop.”
+
+**L6. Four-space / tab-indented tables.** Desktop `fromMarkdown` treats them as code and repair leaves them (`markdown-tables.test.ts` preserve cases with four spaces and with tab). iOS `blocks` uses `trimmed` for non-list lines, so an indented table can become a table. Unspecified.
+
+**L7. Acc 8 preserves only letters and digits.** CJK, emoji, punctuation, and currency in cells can vanish under that invariant. Existing `testNoPrefixOfAReplyLosesCharacters` is stricter (non-whitespace minus `#->` `` `*_ ``) and does not include `|` or `[` / `]`.
+
+**L8. Walkie 600-character truncation.** Acc 9 can drop later cell words via `truncated` and still “contain the header and cell words” if the first row is present. No rule that every cell is spoken.
+
+**L9. Copy / Select Text still copy raw `message.text`** (`ChatView.swift` 1380–1391), including pipes and `[ ]`. Acc never mentions clipboard. After Acc 2, context-menu Copy is source and the SQL CSV button is gone.
+
+**L10. One-column tables, ordered task lists, interactive (tappable) checkboxes, roster snippet preview, and CRLF.** First four unspecified. CRLF is already normalized at the start of `Markdown.blocks` (58–59); Android `MarkdownTest` pins it, iOS `MarkdownTests` does not. A table arriving as `\r\n` should work if they keep that normalize; Acc never says so.
+
+**L11. Android.** Non-scope *“This issue does not change Kotlin behavior”* matches the current split:Memory flush completed.
+ `Markdown.kt` has no table/task cases; `Transcript.table` remains the whole-message card. Residual risk is an implementer “syncing” `Markdown.swift` into `Markdown.kt` because the two files are currently twins.
+
+---
+
+Residual risk if the Highs are fixed: Acc 1 still needs one concrete source string with prose, table, and prose (with or without a blank line, and preferably the welded lead-in from `ChatMarkdown.test.ts`); Acc 11 still needs “one bot message, markdown table not `SQLResultTableView`, task brackets not visible, on `preview-gmail-reply`”; Acc 10 still needs a mutation line for `Walkie.speakable` and a statement that Acc 2 is enforced in the app target or by deleting/unreaching `parsedTable`.
+
+
+### #1706 shuhei-suzuki [2026-09-23T07:41:16Z]
+### 🔍 [Codex/gpt-5.6-sol-max] 要件レビュー
+
+### 🔍 Requirements review
+
+**Verdict: request changes**
+
+#### Critical
+
+No findings.
+
+#### High
+
+1. **The claimed automated coverage cannot verify the user-visible behavior.**  
+   Requirement: “[`cd ios && swift test` covers the cases above](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:58>).”  
+   What is wrong: `swift test` builds only `CompanionCore`; [Package.swift](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/Package.swift:19>) and [ios/TESTING.md](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/TESTING.md:57>) explicitly exclude `App/`. Alignment, checkbox drawing, inline cell rendering, and removal of `SQLResultTableView` all live in the app target. A correct core parser paired with a broken `MarkdownText` would pass. The simulator build is only a compile gate, while acceptance 11 checks merely that two strings appear and the delimiter does not. It would not catch wrong alignment, wrong checkbox state, lost inline formatting, or continued SQL-card use.
+
+2. **The concrete cases permit a strict subset while claiming GFM support.**  
+   Requirement: “[GFM tables](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:15>).”  
+   What is wrong: every concrete table input uses outer pipes and three-dash delimiters. The current iOS parser already requires outer pipes, at least three lines, at least three dashes, and exact row widths in [ChatView.swift](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/ChatView.swift:1516>). An implementation can retain most of those restrictions and pass the listed examples while rejecting GFM tables without outer pipes or with shorter valid delimiter runs. Desktop’s repair grammar accepts one-or-more dashes in [markdown-tables.ts](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/src/lib/markdown-tables.ts:7>), and its tests explicitly cover omitted outer pipes in [markdown-tables.test.ts](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/src/lib/markdown-tables.test.ts:55>). The accepted grammar needs explicit fixtures.
+
+3. **The welded-table repair has no adequate false-positive boundary.**  
+   Requirement: “[`| A | B | |---|---| | 1 | 2 |` on one line is a two-by-two table](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:38>)” and “[a line that contains pipes but is not followed by a delimiter row stays a paragraph](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:45>).”  
+   What is wrong: these do not decide cases containing an embedded delimiter run, such as `Example: | A | B | |---|---| | 1 | 2 |`. Desktop requires the line to begin with a table pipe in [markdown-tables.ts](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/src/lib/markdown-tables.ts:49>) and has negative tests for inline examples, indented code, lists, blockquotes, and delimiter prose. An eager scanner could convert prose or examples into a table and still meet the written acceptance.
+
+#### Medium
+
+1. **The four scoped rendering surfaces are not individually accepted.**  
+   Requirement: “[Bot and room text on iOS, including a reply that is still streaming and a Markdown file opened from a bubble](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:13>).”  
+   What is wrong: settled messages can be intercepted by `parsedTable` before `MarkdownText` in [ChatView.swift](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/ChatView.swift:1595>), streaming uses a separate call site at [ChatView.swift](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/ChatView.swift:2329>), and file previews use [AttachmentViews.swift](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/AttachmentViews.swift:463>). Acceptance 11 exercises only a transcript. A change limited to one path could pass; each surface needs an observable case.
+
+2. **Requirements do not say whether repairs compose with escaped pipes and code spans.**  
+   Requirement: tables include “inline markdown inside cells” plus the desktop repairs, and “[an escaped pipe, and a pipe inside an inline code span, do not split the row](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:47>).”  
+   What is wrong: desktop deliberately skips repair for any candidate paragraph containing a backtick or backslash in [markdown-tables.ts](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/src/lib/markdown-tables.ts:153>). Therefore a malformed-width or welded table containing either feature is not currently repaired on desktop. The requirements need to say whether iOS should reproduce that exception or support the combined case.
+
+3. **Two explicitly scoped task-list cases lack acceptance examples.**  
+   Requirement: task lists include “`- [X]`” and “nested items” in [the scope](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:18>).  
+   What is wrong: acceptance 7 tests only top-level unchecked and lowercase-`x` items. An implementation can ignore uppercase `X`, flatten nesting, or lose checked state on nested items while passing. This is especially exposed by the current parser, which represents all of them as generic bullets with a capped integer indent in [Markdown.swift](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/Sources/CompanionCore/Markdown.swift:128>).
+
+4. **The streaming preservation invariant protects too little and is ambiguous about `x`.**  
+   Requirement: “[never drops a letter or digit](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:52>); structural markers … may be absent.”  
+   What is wrong: an implementation could drop currency signs, decimal/minus signs, `%`, emoji, punctuation, or backslashes from cell content and still pass. It also does not forbid duplication, reordering, or moving text to the wrong cell. Finally, the exception names “checkbox brackets,” not the `x`/`X`, even though a completed checkbox must consume that letter. Define exactly which source characters are structural and compare all remaining content at every prefix.
+
+5. **The Walkie assertion allows the marker to be spoken incorrectly.**  
+   Requirement: speech “does not contain `[x]` or `[ ]`” in [acceptance 9](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:55>).  
+   What is wrong: stripping only `[` and `]` produces “x done,” which contains the item words and neither prohibited substring but still speaks the checkbox state as a stray letter. Uppercase `[X]` is also untested. Require an exact expected utterance, or explicitly state that no part of the task marker—including `x`/`X`—contributes speech.
+
+6. **A table can satisfy the text checks while being unusable on a phone.**  
+   Requirement: the table “has the header text, each body cell’s text, and the alignment” in [acceptance 1](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:33>).  
+   What is wrong: nothing requires wide columns to wrap or scroll, all columns to remain reachable, or alignment to apply to both header and body cells. Existing `SQLResultTableView` deliberately uses horizontal scrolling in [SQLResultTableView.swift](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/Cards/SQLResultTableView.swift:60>), as does desktop in [ChatMarkdown.tsx](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/src/components/ChatMarkdown.tsx:856>). A clipped off-screen grid could pass every stated text check.
+
+7. **“Width does not match” is broader than the only accepted repair case.**  
+   Requirement: scope includes “a delimiter whose width does not match the header,” but acceptance 4 covers only a “shorter delimiter row” in [the requirements](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:41>).  
+   What is wrong: desktop also trims an overlong delimiter, with a regression test in [markdown-tables.test.ts](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/src/lib/markdown-tables.test.ts:59>). An implementation that only pads short delimiters would meet acceptance 4 but not the stated desktop-repair scope.
+
+#### Low
+
+1. **The empty-cell sentence has no empty data cell in its example.**  
+   Requirement: “[An empty cell the model wrote stays empty](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:39>).”  
+   What is wrong: the empty-looking segments in the preceding welded input are row-boundary artifacts; its only body row is `1, 2`. The desktop test uses actual leading empty body cells in [markdown-tables.test.ts](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/src/lib/markdown-tables.test.ts:23>). The acceptance should provide an equally unambiguous input and expected rows.
+
+2. **The literal-user-message regression has no acceptance fixture.**  
+   Requirement: “[The person’s own messages … stay literal](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:24>).”  
+   What is wrong: current `TextBubble` has separate user and bot branches in [ChatView.swift](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/ChatView.swift:1599>), which is easy to disturb while removing `parsedTable`. Add a user-authored table/task fixture that must retain its pipes, delimiter, and brackets.
+
+3. **“Android unchanged” leaves existing parity documentation false after this issue.**  
+   Requirement: “[Android … does not change Kotlin behavior](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:29>).”  
+   What is wrong: Android’s [Transcript.kt](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/android/core/src/main/kotlin/com/openmausbot/companion/core/Transcript.kt:7>) and [TranscriptTest.kt](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/android/core/src/test/kotlin/com/openmausbot/companion/core/TranscriptTest.kt:10>) explicitly say their strict table-card behavior mirrors iOS. Acceptance 2 intentionally ends that parity. Clarify that Kotlin behavior/tests stay pinned while those comments may be corrected to document the temporary #1707 divergence.
+
+4. **Checkbox interaction and accessibility semantics are unspecified.**  
+   Requirement: task items “show an unchecked and a checked marker” in [acceptance 7](</Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:49>).  
+   What is wrong: a tappable `Toggle` with no persistence, or an unlabeled decorative icon, would satisfy the visual wording. Bot-authored task markers should be explicitly read-only and expose checked/unchecked state to VoiceOver.
+
+I did not read `docs/design/issue-1706-design.md`, as requested. I read the requirements and every listed implementation file; in `ChatView.swift` I limited review to the requested `TextBubble` parsing/routing and streaming call sites.
+
+
+### #1706 shuhei-suzuki [2026-09-23T07:41:18Z]
+## Requirements updated after round 1
+
+Claude (`claude-opus-5-5` / xhigh) did not run: `claude auth status` reports not logged in. Codex and Grok both returned request-changes, with no Critical from Codex and one Critical from Grok. I checked the cited code before editing the requirements.
+
+Accepted and now written into `docs/requirements/issue-1706-requirements.md`:
+
+- The preview gate names Pepper's launch thread, one bot message, `DATA TABLE` / `Copy CSV` absent, task brackets absent, and the user message still literal. Grok C1.
+- Prose immediately followed by a table is an acceptance string, not an implied third repair. Grok H1.
+- Checkbox `x` / `X` is structural. Item text such as `next` keeps its `x`. Grok H2, Codex streaming note.
+- `swift test` is scoped to the splitter and Walkie. The SQL card is an app-target gate. Grok H3, Codex High 1.
+- Real empty cells, short and long delimiters, optional outer pipes, one-hyphen delimiters, and the column-0 weld false positive `Example: | A | B | |---|---| | 1 | 2 |`. Grok H4 / M4 / M11, Codex High 2 and 3.
+- Walkie has an exact spoken string, and its mutation is separate because `speakable` does not call `Markdown.blocks`. Grok H5, Codex Medium 5.
+- Blank line ends a table. Copy CSV loss is explicit. Nested or indented pipe rows stay visible text. Alignment is intentional and applies to header and body, unlike desktop's start-aligned cells. VoiceOver hears completed / not completed. The marker is not a button.
+- One renderer for the settled bubble, the streaming bubble, and Markdown file preview.
+
+Not treated as a defect to copy: desktop repair skipping every paragraph that contains a backtick or backslash. The phone parser fits a multiline delimiter even then, and the requirements say so. The one-line weld still refuses those lines.
+
+Round 2 reviews the revised requirements only.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:01:30Z]
+### 🔍 [Claude/opus-5.5-xhigh] 要件レビュー（2巡目）
+
+### 🔍 Requirements review
+
+**Verdict: request changes**
+
+This is round 2. I read the current `docs/requirements/issue-1706-requirements.md` and checked it against the code: `ios/Sources/CompanionCore/Markdown.swift`, `Walkie.swift`, `ios/App/MarkdownText.swift`, `ChatView.swift` (`TextBubble`, `StreamingBubble`, context menu), `AttachmentViews.swift` (file preview), `Cards/SQLResultTableView.swift`, `ThreadPreview.json`, `ThreadNavigationUITests.swift`, `MarkdownTests.swift`, `WalkieTests.swift`, `ChatPreferences.swift`, and on the desktop side `src/lib/markdown-tables.ts` and `src/components/ChatMarkdown.tsx`. For the design doc I only grepped the sections needed to judge whether a requirement is testable. I did not read all of it. I ran no builds or tests; wherever I state today's behavior, I got it by reading the code.
+
+**Round 1 re-check**
+
+| Round 1 finding | Status |
+|---|---|
+| Preview could pass today's SQL card | **Moved, not fixed.** The preview message now has a task line, so it can never reach `parsedTable`. That makes the SQL-card assertion always pass (H2). The new negative assertions contradict the user message in the same transcript (H1). |
+| `swift test` does not compile `ios/App` | Fixed in wording (2, 13). But the replacement guard is the preview test that always passes (H2). |
+| Concrete strings for prose / weld / empty cells / widths / pipes / one hyphen | Mostly fixed. Still open: extra cells in a weld (M8), a delimiter row with no pipe (M6), what ends a table body (M7). |
+| Weld must not fire on `Example: …` | Fixed. But no negative example starts with `\|` (M9). |
+| Checkbox `x` is structural, `x` in text is not | Fixed for the example strings. The streaming check still has no inputs listed, and it can be written as a character-class filter (M4). |
+| Walkie exact string | Fixed for one table shape and one list marker. Other shapes are unpinned (M10). |
+| Blank lines, indented rows, user messages, VoiceOver, Copy CSV | Blank lines, indentation, user messages, and Copy CSV are fixed. VoiceOver covers tasks only (M1, M3). Losing indented whole-message tables is not acknowledged (M11). |
+
+---
+
+#### Critical
+
+None.
+
+#### High
+
+**H1. Acceptance 14 contradicts itself, and today's code passes its positive checks.**
+Hits: *"does not find the raw delimiter line, and does not find `**Quant**` or `[x]`. The same transcript includes the user message from acceptance 12, and the test finds the delimiter and `[x]` still visible there."*
+- The only transcript helper, `transcriptContains` (`ios/UITests/ThreadNavigationUITests.swift:285-287`), searches every static text in the app with `label CONTAINS`. The user bubble is one `Text(shared.text)` (`ChatView.swift:1609`), so its label contains both `[x]` and `| --- | --- |`. As written, "does not find `[x]`" cannot pass.
+- The requirement does not say the negatives apply only to the bot message, or how to do that. No message has an accessibility identifier today: `ChatView.swift` only sets `header-threads`, `thread-switcher`, and `message-input`. The design says "on that bot message", but the requirement is what the test is judged against.
+- The positive checks pass on the pre-change build:
+  - Today the mixed message is a paragraph, and Foundation renders `**Quant**` as bold. So the label contains `Quant baskets`.
+  - Today `- [x] Ship the notes` is a bullet whose text is `[x] Ship the notes`, which contains `Ship the notes`.
+- "The raw delimiter line" is not given as a string. The test can search for `| --- | --- |` while the fixture uses `|---|---|`, and the negative passes without checking anything.
+- **What ships:** the implementer makes the negatives passable by narrowing them, and nothing left in 14 proves that a table cell exists.
+- **Fix:**
+  - Put the bot fixture text in the requirement word for word.
+  - Give the bot table a delimiter the user message doesn't contain, for example `|:---|---:|`.
+  - Require exact label equality (`label == "Quant baskets"`) for that cell and for a neighbouring cell.
+  - Make the negatives bot-only strings: `[x] Ship the notes` and the bot's delimiter.
+  - Require the PR to record that the test fails on the pre-change build.
+
+**H2. The only app-level guard for acceptance 2 always passes.**
+Hits: *"`swift test` does not compile `ios/App`, so this is enforced by deleting `parsedTable` and `SQLResultTableView`, and by the preview UI test."*
+- `parsedTable` only fires when every non-empty line starts and ends with `|` (`ChatView.swift:1516-1530`).
+- Acceptance 14's bot message contains a task line, so it never reached the SQL card even before this change. "Does not find `DATA TABLE` or `Copy CSV`" is therefore already true on today's code.
+- A later change that brings back a whole-message card branch in `TextBubble` fails nothing. Deleting code is not a regression test.
+- **Fix:** add a second bot message to `ThreadPreview.json` that is only a pipe table. Assert its cells by exact label, and assert that `DATA TABLE`, `N rows`, and `Copy CSV` are absent. Add "put the `parsedTable` branch back" to the mutation table and require the UI test to fail.
+
+#### Medium
+
+**M1. Table VoiceOver reading order is not required.**
+Hits: Non-scope *"VoiceOver still hears completed or not completed, plus the words"* and 9 *"VoiceOver hears the words and whether the item is completed."* Both cover tasks only.
+- The repo already shipped this exact defect on Android. `android/.../TableReadingOrderTest.kt:30-41` documents a Row-of-Columns table that TalkBack read one column at a time ("LANGUAGE, Python, Java, Rust, YEAR, …"). The comment calls that layout the transpose of `SQLResultTableView.swift`, so the iOS card being deleted is laid out row by row.
+- Nothing here requires the new table to read row by row, or tests that it does.
+- **Fix:** require VoiceOver to read row by row (header row first). Add a UI assertion on element order within the table.
+
+**M2. Columns are not required to share widths, and acceptance 15 is not tested anywhere.**
+Hits: 15 *"Header and body cells of one row stay on that row and scroll sideways."* and 8 *"Header and body use the same alignment for that column."*
+- One HStack per row, each at its natural width, satisfies 15 as written, and the columns wouldn't line up. Alignment inside a cell means nothing without a common column width.
+- `swift test` can't draw, and 14 doesn't mention width or scrolling. So 15 has no check.
+- **Fix:** require each column to have one width across header and body. Add a wide table to the preview fixture, and require a screenshot attachment (the existing tests already call `recordScreenshot`).
+
+**M3. The "completed state" check has a substring trap, and the fixture can't tell checked from unchecked.**
+Hits: 14 *"finds the completed state"* and 9's table vocabulary *"completed" / "not completed"*.
+- "not completed" contains "completed". A `CONTAINS "completed"` check passes when the item is drawn unchecked.
+- The fixture has only a completed task, so an implementation that always draws a check also passes.
+- **Fix:** add an open task to the fixture. Require an exact accessibility value on each item, and say which property holds it (label or value).
+
+**M4. The streaming invariant (acceptance 10) has no inputs, and one of its example cells contradicts it.**
+Hits: *"Growing a reply one character at a time never drops, duplicates, or moves a non-whitespace character of cell or item text, except these structural marks…"*
+- **No inputs are listed.** The house test filters by character class: `!"#->`*_".contains($0)` in `MarkdownTests.swift:172-183`. The design's plan follows that pattern ("Structural `|`, `-`, and brackets are ignored. Letters and digits … must survive"). That leaves `%`, `$`, the `:` in `12:30`, and the `-` in `-5%` unchecked, which contradicts 10's own *"Currency, `%`, and punctuation inside a cell are not structural."*
+- **The `\|` example breaks it.** Acceptance 6 says `| a \| b | c |` gives the cell `a | b`, so the backslash is dropped. The backslash is not in 10's list of exceptions.
+- **The pipe exception is too broad.** Every `|` is exempt, including one inside `` `a|b` ``, so a split that drops that pipe still passes.
+- **"Moves" is undefined.** It could mean reading order or block membership.
+- **It doesn't say which output it checks.** Acceptance 7 drops `**` when drawing, so 10 must mean the split's cell strings, but it doesn't say so.
+- **Fix:**
+  - Say that 10 applies to the `Markdown.blocks` output.
+  - Say that exclusion is by position (only the marks the parser consumed), not by character class.
+  - List the inputs: every example in 1–9 and 11, plus cells containing `-5%`, `12:30`, `$3`, `x`, `` `a|b` ``, and `a \| b`.
+  - Add the `\` of `\|` to the exceptions.
+
+**M5. Ordered task items: whether the number shows is unspecified, and the design drops it.**
+Hits: 9 *"`1. [ ] open` | not completed | `open`"* and Scope *"Task items on `-`, `*`, `+`, and ordered markers"*.
+- The design's `case task(indent:checked:text:)` has no number field.
+- The existing streaming helper counts ordered numbers as content: `"\(number)" + text` in `MarkdownTests.swift`.
+- So a numbered checklist (`1. [ ] install`, `2. [ ] configure`) loses its step numbers. Mid-stream, `1.` appears and then disappears when ` ] ` arrives. The desktop (remark-gfm) keeps the number.
+- **Fix:** state whether `1.` stays visible next to the checkbox, and add it to 9's table.
+
+**M6. A delimiter row with no pipe makes stray dashes into tables, and makes streaming flicker.**
+Hits: 5 *"A delimiter cell is one or more hyphens with an optional colon on either side."* with 4's fitting and 6 *"`Pros | Cons\n---` is a paragraph plus a rule."*
+- Read literally:
+  - `Pros | Cons\n-`, `\n--`, `\n:---`, and `\n---:` are one-cell delimiters, which get fitted into tables.
+  - `\n---` is not a table, because the rule check wins.
+- The desktop requires a pipe: `isDelimiterRow` returns false without `|` (`markdown-tables.ts:25`).
+- **Streaming failures:**
+  - Prose that contains a pipe, followed by a list item, becomes a table for one frame when the bare `-` arrives.
+  - A table written without pipes (`--- | ---`) flips table → rule → table as `-`, `--`, `---`, `--- |` arrive.
+- **Fix:** add "a delimiter row contains at least one `|`" plus a negative example (`Pros | Cons\n-` stays text).
+
+**M7. What ends a table body is only partly stated.**
+Hits: 6 *"A blank line ends a table."* and *"A pipe row with leading whitespace is not a table."*
+- These cases are unspecified:
+  - `| 1 | 2 |\nAfter` with no blank line.
+  - A bot message `| A | B |\n| --- | --- |\n| 1 | 2 |\n- [x] done`, which is acceptance 12's string sent by the bot.
+- GFM (remark-gfm on the desktop) turns a line without pipes into a row. The design says rows must contain `|`. The requirement is silent, so this difference from the desktop isn't pinned by any test.
+- **Fix:** state it and give both strings.
+
+**M8. Cells past the header width in a welded line: "grows a column" or "chunked into rows"?**
+Hits: 3 *"A body cell past the header width is still shown. The table grows a column rather than dropping those characters."* This sits under the heading "Welded empty cells…".
+- The desktop's `splitInlineTable` cuts welded body cells into rows of the header's width (`markdown-tables.ts:42-47, 75-79`). By that rule, `| A | B | |---|---| | 1 | 2 | 3 |` is `[1,2]` then `[3,""]`, not a third column.
+- Both readings "still show" the `3`, so either implementation passes.
+- **Fix:** give the expected result for `| A | B |\n| --- | --- |\n| 1 | 2 | 3 |` and for `| A | B | |---|---| | 1 | 2 | 3 |`.
+
+**M9. The weld guard has no negative example that starts with `|`.**
+Hits: 6 *"The one-line weld runs only on a line that starts at column 0 with `|` and contains no backtick and no backslash."*
+- Both negatives given start with prose.
+- The design adds four more conditions that aren't in the requirement:
+  - the header has at least two cells;
+  - the header ends with `|`;
+  - the rest of the line is empty or starts with `|`;
+  - the next line is not a delimiter row.
+- By the requirement alone, `| A | B | |---|---| then prose` and `| Step | --- | Done |` can be welded into tables.
+- **Fix:** add those conditions, and add both strings as negatives.
+
+**M10. The spoken-string check covers one table shape and one list marker.**
+Hits: 11's single sample, and 13 *"Leave delimiter rows or a checkbox `x`/`X` in `Walkie.speakable` | The exact spoken string"*.
+- Reading `Walkie.swift:45-66`, today speaks the sample as `Name , Status. --- , ---. Ada , ok. x , stays. [x] shipped. [ ] waiting. [X] closed.`
+- A filter that only matches `| --- |` or `- [` passes the check. These would still be spoken:
+  - `| :--- | ---: |`
+  - `--- | ---`
+  - `| - | - |`
+  - the delimiter inside a welded line
+  - `1. [ ]`, `* [x]`, `+ [X]`, and nested tasks
+
+  Speech doesn't go through `Markdown.blocks`, so none of the parser's cases carry over.
+- `speakable` output is also shown on screen in `WalkieView.swift:210-214`. This is on-screen text, not only speech.
+- **Fix:** add a second exact-string sample covering those shapes, or say which are out of scope for speech.
+
+**M11. Losing indented whole-message tables is not acknowledged.**
+Hits: Non-scope *"A pipe row with any leading space or tab is in this bucket."* and *"Copy CSV. Losing it … is accepted."*
+- `parsedTable` trims each line and drops blank lines (`ChatView.swift:1518-1520`). So today a whole-message table indented 1–3 spaces shows as a table (the SQL card) on the phone.
+- The desktop also accepts that indentation (`^ {0,3}\|` at `markdown-tables.ts:49`, and GFM tables in general).
+- Under this requirement it becomes raw text on the phone. The requirement lists the Copy CSV loss but not this one. It also groups top-level 1–3-space indentation with "nested in a list".
+- **Fix:** either accept 1–3 spaces at the top level, or list this as an accepted loss.
+
+**M12. The mutation table only tests whole features on or off.**
+Hits: 13's table.
+- All three rows switch an entire feature off. None targets a round-1 behavior:
+  - the column-0 guard
+  - the weld guard
+  - splitting inside a code span
+  - rule precedence (`Pros | Cons\n---`)
+  - extra-cell growth
+  - `x` in item text
+  - `%` in a cell
+- None targets the app:
+  - putting the `parsedTable` branch back
+  - always drawing a check
+  - laying the table out as a Row of Columns
+- **Fix:** add these rows.
+
+#### Low
+
+- **L1.** 4 says *"left, right, and none"*; 8 says *"`:---` is leading … `---` is leading"*. The words are mixed and RTL is undefined. The desktop sets `dir` on each table (`ChatMarkdown.tsx:859`).
+- **L2.** 11 *"`Walkie.speakable` does not use `Markdown.blocks`."* It's unclear whether this is a fact or a ban. If it's a ban, M10 needs its own speech rules.
+- **L3.** The streaming caret position when the last block is a table (including a header-only table while the delimiter streams in) or a task is not in the requirement. Only the design covers it.
+- **L4.** Non-scope says Kotlin comments *"may be corrected"*. After the deletion these files cite `ios/App/Cards/SQLResultTableView.swift`: `Transcript.kt:9`, `:178` (claims to match `csvField`), `TranscriptTest.kt:11-13`, `ExecutionFeedbackTest.kt:406`, and `TableReadingOrderTest.kt:35`. "May" should be "must".
+- **L5.** The "completed" / "not completed" accessibility strings need localizing. `Localizable.xcstrings` ships en and pt-BR.
+- **L6.** `ThreadPreview.json` is shared by `ThreadNavigationUITests` and `ComposerReturnUITests`.
+  - The new messages change the message chain and `activeLeafId`.
+  - The Gmail roster row will show the raw last message (`rosterPreview` → `previewText`, `ChatPreferences.swift:140-154`).
+  - Require the existing preview UI tests to still pass.
+- **L7.** Two surfaces aren't named: message-search snippets (`Text(hit.snippet)`, `ChatListView.swift:931`) and held sends (`Text(send.text)`, `ChatView.swift:2368`). State that they stay raw.
+- **L8.** These cases are unspecified:
+  - single-column tables (`| A |\n| --- |\n| 1 |`);
+  - `- [ ]` or `- [x]` with no text (a streaming step for every task line);
+  - `[  ]` with two spaces;
+  - a task inside a quote (`> - [x] done`).
+- **L9.** Non-scope says Copy/Select Text *"keep copying the source"*. They actually copy `attachedContent.text`, which is the source minus transport tags. The wording is slightly off.
+- **L10.** There's no size limit for file preview. A large `.md` table creates rows × columns `Text` views inside a non-lazy `VStack` in `MarkdownText`.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:01:32Z]
+### 🔍 [Codex/gpt-5.6-sol-max] 要件レビュー（2巡目）
+
+### 🔍 Requirements review
+
+**Verdict: request changes**
+
+I read the current requirements plus the relevant package, renderer, Walkie, fixture, and UI-test code. I did not read the design document.
+
+#### Critical
+
+None.
+
+#### High
+
+1. **The streaming invariant contradicts inline Markdown rendering.** Acceptance 10 says no non-whitespace character may disappear except the enumerated table/task marks. Acceptance 7 requires `**Quant** baskets` to hide the asterisks, while Acceptance 6 requires `\|` to display without the backslash; code-span and link syntax would likewise disappear through the paragraph inline renderer. Since Acceptance 7 explicitly says the splitter retains those markers, both requirements cannot hold simultaneously. Define preservation over rendered semantic text, or include inline Markdown and escape syntax among the structural exceptions. Also clarify that “moves” means changing source order, not visual reflow.
+
+2. **The preview test requires both absence and presence of the same substrings on one screen without defining scope.** Acceptance 14 says the test “does not find … the raw delimiter line” or `[x]`, then requires the user message on that transcript to expose that delimiter and `[x]`. Current `MessageRow`/`TextBubble` code has no per-message accessibility identifier. A global substring negative must fail; an exact-match negative can pass even when a combined bot label still contains raw syntax. Require bot- and user-message-scoped containers/identifiers—or use distinct source tokens and explicit substring predicates.
+
+#### Medium
+
+1. **Several app-only rendering failures can pass every specified check.** Acceptance 13 concedes that `swift test` “does not prove how a cell is drawn,” while Acceptance 14 exercises only text presence and one completed task. A view that ignores alignment, renders unchecked tasks as checked, makes the marker a button, or stacks wide-table cells can still pass the package tests, preview assertions, and simulator build. Acceptance 8, both states in Acceptance 9, and Acceptance 15 need observable preview checks or an explicit visual/accessibility verification procedure.
+
+2. **The synthesized alignment for a short delimiter is contradictory.** Acceptance 4 says the missing third delimiter is “filled with plain dashes,” yet calls that column’s alignment “none.” Acceptance 8 says plain `---` means leading alignment. Specify whether a synthesized delimiter produces `none` with leading display fallback, or actual leading alignment; otherwise package assertions and implementations can legitimately disagree.
+
+3. **Walkie coverage does not match its broad scope.** Scope requires “Walkie speech for those blocks,” but the exact oracle in Acceptance 11 covers only a multiline table with both outer pipes and `-` task markers. Because `Walkie.speakable` intentionally does not use `Markdown.blocks`, parser tests cannot prove speech for welded/no-outer-pipe tables or `*`, `+`, ordered, and nested tasks. Add at least one exact oracle exercising those independent paths or narrow the stated speech scope.
+
+#### Low
+
+1. **“Outer pipes are optional” still leaves mixed forms undefined.** Acceptance 5 demonstrates all rows with no outer pipes, while the other examples use both outer pipes. It does not settle whether leading and trailing pipes are independently optional or whether rows may mix styles. Add concrete leading-only, trailing-only, and/or mixed-row cases, or explicitly exclude them.
+
+2. **Fence protection names tables but not tasks.** Acceptance 6 says pipes inside closed or open fences stay code, but never says the same for `- [x] literal`. The current parser recognizes fences before list items; a task-specific preprocessing pass could regress that behavior while satisfying every listed task assertion. Add a fenced and preferably an open-fence task negative.
+
+Round 1’s `swift test` limitation, welded-table negative, core empty-cell/delimiter examples, checkbox `x` distinction, exact Walkie string, blank-line/indent/user-message behavior, VoiceOver intent, and Copy CSV loss are now explicit. The preview scoping and app-only verification remain incomplete.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:01:34Z]
+### 🔍 [Grok/grok-4.6-xhigh] 要件レビュー（2巡目）
+
+### 🔍 Requirements review
+
+**Verdict:** request changes
+
+Round 1 leftovers that still fail a ship-through test: the preview fixture still never puts today’s SQL card on screen; the preview negatives fight the user-message positives; extra body cells still have no concrete string. Newly closed: the `Example:` weld, welded empty cells and the short tail, short/long delimiters, optional outer pipes, one-hyphen delimiters, table-after-prose, blank line, indented pipes, Copy CSV loss, and the Walkie golden string with a cell `x`.
+
+Code actually read for this review: `docs/requirements/issue-1706-requirements.md` (full), `ios/App/ChatView.swift` (`parsedTable` / `TextBubble` / Copy), `ios/App/Cards/SQLResultTableView.swift`, `ios/App/MarkdownText.swift`, `ios/App/AttachmentViews.swift` (`FilePreviewView`), `ios/Sources/CompanionCore/Markdown.swift`, `ios/Sources/CompanionCore/Walkie.swift`, `ios/Package.swift`, `ios/Memory flush completed.
+App/ThreadPreview.json`, `ios/UITests/ThreadNavigationUITests.swift` (`transcriptContains`), `ios/App/Session.swift` (preview launch), `src/lib/markdown-tables.ts` (`splitInlineTable`), `ios/Tests/CompanionCoreTests/MarkdownTests.swift`, `ios/App/SelectableTextSheet.swift`. Design doc was opened only to see whether a vague requirement had been parked there; it is not reviewed. `project.yml` was not read. No tests were run.
+
+### Critical
+
+**C1. The preview fixture still lets today’s SQL card ship for a whole-message pipe table.**
+
+Hits: Acceptance 2 (“A bot message that is only a pipe table is that table inside the normal bubble. It does not show `DATA TABLE`, `Copy CSV`, or `SQLResultTableView`. … this is enforced by deleting `parsedTable` and `SQLResultTableView`, and by the preview UI test.”) and Acceptance 14 (“one bot message contains a table cell written `**Quant** baskets` and a completed task `Ship the notes`. The offline UI test on that screen finds `Quant baskets` … does not find `DATA TABLE` or `Copy CSV`”).
+
+`parsedTable` returns a card only when every non-empty line starts and ends with `|` (`ChatView.swift`). A completed task line (`- [x] Ship the notes` or any sibling from Acceptance 9) makes that guard fail, so the mixed Pepper message never becomes `SQLResultTableView`. That view is the only caller of the card; `StreamingBubble` and `FilePreviewView` already go through `MarkdownText`. `MarkdownText.inline` already feeds `**Quant** baskets` to `AttributedString`, so “finds `Quant baskets`” and “does not find `**Quant**`” pass on today’s paragraph renderer. `cd ios && swift test` only builds `CompanionCore` (`Package.swift`). Acceptance 16 then names the two surfaces that already skip `parsedTable`.
+
+An implementer can teach `Markdown.blocks` tables and tasks, keep `parsedTable` on `TextBubble`, and still satisfy every check named in 13 and 14. The bug in Purpose (“a message that is only a pipe table becomes the SQL result card”) remains in production, including the settle jump from `StreamingBubble` into the card.
+
+Close it by putting a **second** bot message on `preview-gmail` whose entire text is a rectangular pipe table (the shape `parsedTable` accepts today), asserting `DATA TABLE` / `Copy CSV` are absent **on that bubble**, and keeping the completed task as its own list item (same message or another). Deletion of `parsedTable` / `SQLResultTableView` can stay as a belt; the preview has to be able to fail while those symbols still exist.
+
+### High
+
+**H1. Acceptance 14’s negatives and the user-message positives cannot both be true on the existing preview harness.**
+
+Hits: Acceptance 14 (“The offline UI test on that screen … does not find the raw delimiter line, and does not find `**Quant**` or `[x]`. The same transcript includes the user message from acceptance 12, and the test finds the delimiter and `[x]` still visible there.”) and Acceptance 12 (`| A | B |\n| --- | --- |\n| 1 | 2 |\n- [x] done`).
+
+`ThreadNavigationUITests.transcriptContains` is `staticTexts` + `label CONTAINS` over the whole screen. The user bubble’s `| --- | --- |` and `[x]` make a screen-wide “does not find the raw delimiter line / `[x]`” fail forever. The bot message is not given as a full source, so its delimiter can be the same `| --- | --- |` as the user message; even a string search cannot tell the two bubbles apart.
+
+The likely patch is to drop one side. Dropping the user-message asserts leaves Acceptance 12 unenforced on the only headed path. Dropping the negatives leaves a table that is still source text able to pass “finds `Quant baskets`” via Foundation. Name the bot bubble and the user bubble as separate queries, and give the bot table a delimiter that cannot match the user source (or identify each row by accessibility id).
+
+**H2. Extra body cells still have no concrete string, so grow / wrap / drop can all claim Acceptance 3.**
+
+Hits: Acceptance 3 (“A body cell past the header width is still shown. The table grows a column rather than dropping those characters.”).
+
+The welded examples in that same item are a short row and an empty-cell weld. There is no source whose header width is 2 and whose body has a third cell. GFM drops the extra cell. `splitInlineTable` in `src/lib/markdown-tables.ts` chunks the body to the header width, so a third cell becomes the next row. Growing a column is a third shape. Package tests that only replay the numbered strings stay green for all three.
+
+Add at least two strings and their grids, for example:
+
+- multiline: `| A | B |\n| --- | --- |\n| 1 | 2 | 3 |` → three columns, empty third header, one body row `1 | 2 | 3`
+- welded: `| A | B | |---|---| | 1 | 2 | 3 |` → the same grid, or an explicit wrap if weld is allowed to differ
+
+### Medium
+
+**M1. Walkie is forbidden from using `Markdown.blocks` and is only given one golden reply, so delimiter-shaped prose can go silent.**
+
+Hits: Acceptance 11 (“`Walkie.speakable` does not use `Markdown.blocks`. For this reply the spoken string is exactly: `Name, Status. Ada, ok. x, stays. shipped. waiting. closed.`”) and Acceptance 6 (“`The separator |---|---| is what GFM calls a delimiter row.` stays one paragraph.”).
+
+Today’s `Walkie.speakable` never calls `Markdown.blocks` (`Walkie.swift`); it strips list prefixes and rewrites `|` to `, `. Skipping delimiter rows without the splitter typically means a line regex. That regex also matches the separator sentence in Acceptance 6, which is required to stay a paragraph on screen and has no spoken contract. A second spoken string for that sentence (and for `Example: | A | B | |---|---| | 1 | 2 |`) closes the hole. The golden string itself does lock cell `x` vs checkbox `x` for the sample; that round-1 item is closed for that sample only.
+
+**M2. The weld’s “no backtick and no backslash” rule is a new pass for real one-line tables.**
+
+Hits: Acceptance 6 (“The one-line weld runs only on a line that starts at column 0 with `|` and contains no backtick and no backslash.”) and Acceptance 4 (“Fitting still happens when a cell contains `\|` or a closed code span.”).
+
+`Example: | A | B | |---|---| | 1 | 2 |` is closed. The new exclusion also refuses `| A \| B | C | |---|---| | 1 | 2 |` and a welded row whose cell is `` `a|b` ``. Those stay a single paragraph, while the same cells on three lines are a table. Say so with those strings (paragraph, characters still visible), or drop the blanket ban and tokenize the weld the same way as multiline rows.
+
+**M3. Delimiter fit across `\|` / a closed code span still has no string.**
+
+Hits: Acceptance 4 (“Fitting still happens when a cell contains `\|` or a closed code span. The desktop repair skips those paragraphs because it is not a tokenizer.”).
+
+Every numbered fit example is a clean cell. Desktop `repairMarkdownTables` skips those paragraphs. An implementer can copy that skip, pass Acceptances 1–6 as written, and still drop `| a \| b | c | d |\n| --- | --- |\n| 1 | 2 | 3 |` (or a `` `a|b` `` header) on the floor. One fitted source plus the resulting column count belongs in the split contract.
+
+**M4. Alignment and sideways scroll are required in the app target and never appear in the preview test.**
+
+Hits: Acceptance 8 (“`:---` is leading, `---:` is trailing, `:---:` is center, `---` is leading. Header and body use the same alignment for that column.”), Acceptance 4 (“is left, right, and none, on both header and body”), Acceptance 13 (“It does not compile `ios/App`, so it does not prove how a cell is drawn.”), Acceptance 15 (“Header and body cells of one row stay on that row and scroll sideways. They are not stacked under each other.”).
+
+Package tests can store alignments on the block. Drawing is `MarkdownText`. The preview table is two short cells (`Quant baskets`, `Ship the notes`) that a `VStack` of `Text`s still shows. A stacked wide row and a start-aligned column both ship. Put a long cell and an aligned column (`:---` / `---:`) on the Pepper thread, and say how the UI test proves one row (frames / hittable order) rather than stacked labels.
+
+Acceptance 4’s “left, right” and Acceptance 8’s “leading, trailing” also disagree. Pick the SwiftUI edge (`leading` / `trailing` / `center` / `leading` for `---`) in both sentences.
+
+**M5. VoiceOver is named without an exact string, so “finds the completed state” is a free pass.**
+
+Hits: Acceptance 9 (“VoiceOver hears the words and whether the item is completed.”), Acceptance 14 (“finds the completed state”), Non-scope (“VoiceOver still hears completed or not completed, plus the words.”).
+
+Walkie got an exact string so a stray `x` cannot pass. VoiceOver did not. A visible checkmark image, a combined label that still includes `[x]`, or a label that only says `Ship the notes` can all be called “completed state.” Give the accessibility value/label for `- [x] Ship the notes` and for `- [ ] waiting` (for example `completed, Ship the notes` / `not completed, waiting`) and have the preview query that string on the bot item.
+
+**M6. Rooms and Markdown file preview are in scope with no headed check.**
+
+Hits: Scope (“Settled bot and room text, the streaming bubble, and a Markdown file preview all use one renderer: `MarkdownText`.”) and Acceptance 16 (only `StreamingBubble` and the Markdown branch of file preview).
+
+Room bot text uses `TextBubble`, which is the SQL-card path. File preview already uses `MarkdownText` and never the card. Pepper’s launch thread is a 1:1 bot chat (`ThreadPreview.json`). If C1 is closed on that thread, rooms still need one sentence that a room bot whole-message table is the bubble table, or an explicit move of rooms to non-scope. File preview at least needs “the Markdown preview of a `.md` file with `| A | B |` / `| --- | --- |` draws cells `A` / `B` and no delimiter,” or an admission that wiring (16) is the whole check.
+
+### Low
+
+**L1. Task-marker variants outside `[ ]` / `[x]` / `[X]` with a space after `]` are unspecified.**  
+Hits: Acceptance 9 (the five rows plus `` `- [x]no-space` stays a bullet ``).  
+`[ x ]`, `[X ]`, and `1) [ ] open` are GFM-ish and will be implemented by guess. One extra row each, or an explicit “only these three markers.”
+
+**L2. Walkie’s “does not use `Markdown.blocks`” is untested.**  
+Hits: Acceptance 11 and Acceptance 13 (mutations only mention the spoken string).  
+A call into `Markdown.blocks` that still emits the golden string passes 13. If the constraint matters, the mutation is “`Walkie.speakable` calls `Markdown.blocks`.”
+
+**L3. Deletion list names `parsedTable` and `SQLResultTableView` only.**  
+Hits: Acceptance 2.  
+`tableCells` and `isTableSeparator` exist only for that card (`ChatView.swift`). Dead helpers can remain after a literal reading of 2.
+
+**L4. Empty cells have no spoken form.**  
+Hits: Acceptance 3 (empty / `2`) and Acceptance 11 (the sample has no empty cell).  
+`Ada, , ok.` vs skipping the hole is implementer choice.
+
+**L5. Kotlin comments “may be corrected.”**  
+Hits: Non-scope (“Comments in the Kotlin sources that say the strict iOS card is still the live iOS behavior may be corrected”).  
+Optional “may” leaves Android comments pointing at a deleted Swift file. Make it a must, or drop it.
+
+**L6. ImagePreview’s `preview-gmail-reply` is the old sentence.**  
+Hits: Acceptance 14 (`preview-gmail`, transcript that already contains `I’m reviewing Gmail here`).  
+`-images-preview` loads `ImagePreview.json`, which still has only the Gmail sentence. The table UI test is safe if it launches `-threads-preview` only; say that, so nobody copies the fixture into the wrong JSON and breaks image tests — or updates both on purpose.
+
+Round 1 items that are actually closed in this text: weld-negative `Example: | A | B | |---|---| | 1 | 2 |`; table immediately after prose; welded empty cells and short tail; short and long delimiters; optional outer pipes; one-hyphen delimiter; blank line ends a table; indented / quoted pipes stay visible; Copy CSV loss; user messages stay literal in Acceptance 12; Walkie golden string so a checkbox `x` cannot stand in for the cell `x`; `swift test` / `ios/App` limitation is stated (enforcement of the card still fails; see C1).
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:01:36Z]
+## Requirements updated after round 2
+
+All three reviews requested changes. Critical was 0/3. I checked the cited helpers before editing `docs/requirements/issue-1706-requirements.md`.
+
+Accepted:
+
+- A second preview message, `preview-gmail-grid`, is only a pipe table, so today's `parsedTable` would show `DATA TABLE`. The UI test looks inside `message-<id>`, not at the whole screen. Grok C1, Claude H2, Codex preview High.
+- Bot and user strings are written out. Negatives that would collide (`[x]`, `| --- | --- |`) are scoped to the element that must not contain them. Claude H1, Grok H1, Codex High 2.
+- Streaming preservation is defined on `Markdown.blocks` output, by position, and drawing may hide `**`. The backslash of `\|` is structural. Codex High 1, Claude M4.
+- Multiline extra cells grow a column. Welded extra cells wrap to the next row of the header width. Both have source strings. Grok H2, Claude M8.
+- Alignments are only `leading`, `trailing`, and `center`. Padded dashes are leading. Codex Medium 2.
+- A delimiter row must contain `|`. `Pros | Cons` followed by `-` is not a table. Claude M6.
+- A non-row ends a table without requiring a blank line. Claude M7.
+- Ordered tasks keep `1.` on screen. Claude M5.
+- VoiceOver labels are exact (`completed, …` / `not completed, …`), both states are in the fixture, and "not completed" is not a substring hit for `completed`. Grok M5, Claude M3.
+- Row geometry (shared mid-line and shared column width) is the wide-table check, on the grid message, with a screenshot. Claude M1 and M2.
+- Walkie has a second exact string for the welded table, other task markers, delimiter-only lines, and the prose sentence that contains a delimiter run. The ban on calling `Markdown.blocks` is lifted. Grok M1, Claude M10, Codex Medium 3.
+- Weld conditions and the negatives that start with `|` are listed. A backslash blocks the weld only. Claude M9, Grok M2 and M3.
+- Top-level indent of 1–3 spaces is still a table. Four spaces or a tab staying source is an accepted loss. Claude M11.
+- Kotlin comments that cite the deleted iOS card must be updated. Android behavior stays. Claude L4.
+- Search snippets, held sends, and the roster line stay raw. Existing preview UI tests must still pass. `activeLeafId` stays. Claude L6 and L7.
+
+Round 3 reviews this text. It is the last requirements round before design review.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:19:25Z]
+### 🔍 [Claude/opus-5.5-xhigh] 要件レビュー（3巡目）
+
+### 🔍 Requirements review
+
+**Verdict: request changes.** 0 Critical, 4 High, 7 Medium, 8 Low.
+
+**What I read:**
+- The requirements file.
+- `ios/Sources/CompanionCore/Markdown.swift`, `Walkie.swift`, and `Store.swift` (`visibleTranscript`).
+- `ios/App/ChatView.swift`: `TextBubble`, `MessageRow`, `StreamingBubble`, and the transcript layout.
+- `ios/App/Cards/SQLResultTableView.swift`, `ios/App/MarkdownText.swift`, and `ios/App/AttachmentViews.swift` (the Markdown preview branch).
+- `ios/App/ThreadPreview.json`, `ThreadPreviewPages.json`, and the preview loading code in `Session.swift`.
+- `ios/UITests/ThreadNavigationUITests.swift`, `ComposerReturnUITests.swift`, and `ios/Tests/CompanionCoreTests/MarkdownTests.swift`.
+- The Android files that cite the Swift card.
+
+In the design doc I read only the Walkie and UI paragraphs, to see whether they settle anything vague. I did not build or run tests.
+
+#### Round 2 re-check
+
+| Round 2 item | Status |
+|---|---|
+| A whole-message table must be able to fail while `parsedTable` exists | **Fixed.** `parsedTable` matches the acceptance 2 table (3 lines, outer pipes, `---`, 2 cells each). If it is restored, the card draws `ALPHA`/`BETA` in uppercase plus `DATA TABLE` and `Copy CSV`, so the grid assertions fail. The `2 rows` literal is wrong (M3). |
+| Queries scoped to `message-<id>` | **Fixed in text.** The identifier doesn't exist today; only `message-input` does. How the identifier attaches is still open (L1). |
+| Streaming measured on `Markdown.blocks` | **Direction fixed.** The new wording has new holes (H4, M1). |
+| Multiline vs welded extra cells | **Fixed.** Both strings are present and match the stated rules. |
+| Alignment is only leading / trailing / center | **Wording fixed.** No fixture produces `center` (M4). |
+| A delimiter row needs a `\|`; `Pros \| Cons` + `-` is not a table | **Rule fixed.** The negative's expected output is wrong (H2). |
+| Exact VoiceOver labels, both states in the fixture | **Fixed for the preview.** Five of the seven table rows have no test (M6). |
+| Two exact Walkie strings | **Present.** Sample 2 contradicts acceptance 6 (M2). Today's `speakable` would say `Name , Status.` (space before the comma), so the exact strings do force new pipe handling. That looks intended. |
+
+---
+
+#### High
+
+**H1. Nested tasks: Scope and Non-scope say opposite things, and no fixture decides it.**
+- Non-scope: "A table or task nested in a list item or a blockquote. Those lines stay visible as list text … they are not a table or a task."
+- Scope: "Task items on `-`, `*`, `+`, `1. `, and `1) `, including nested items."
+- Acceptance 9's `  - [x] nested` has no parent item, so it passes whichever reading the implementer picks.
+- The realistic input, `1. [ ] first\n  - [x] nested`, appears only in acceptance 11, which checks speech, not blocks.
+- **Failure:** to satisfy acceptance 6's `- intro\n  | A | B |…`, the implementer has to track "under a list item". If they reuse that tracking for tasks, as Non-scope says, every nested checklist a model sends shows `[x] child` as bullet text, and acceptance 9 stays green.
+- **Fix:** remove "or task" from Non-scope. Add the fixture `- [ ] parent\n  - [x] child` → two tasks, with the child one level in.
+
+**H3. The wide-row check proves nothing.**
+- Acceptance 15: "Acceptance 14's grid is the check that a row stays one row and scrolls sideways instead of stacking. The long token is the wide cell."
+- Acceptance 14: "The long token is not wrapped onto a second line."
+- On an iPhone 17 Pro (402pt, the device named in `docs/verification/ios-threads.md`), the bot bubble content is about 296pt: 402 − 2×16 transcript padding − 44 `Spacer(minLength:)` − 2×15 bubble padding.
+- By my estimate, `Alpha` + gap + `very-long-beta-cell-token` at 17pt is about 240–250pt. It fits. On iPad (`CompanionLayout.chatWidth` 760) it fits easily.
+- Nothing measures "not wrapped". With center row alignment, a wrapped token still shares its center line with `one`, and the width-match assertion still holds.
+- **Failure:** a `Grid` with no horizontal `ScrollView` and wrapping cells passes every grid assertion. Real wide tables then wrap at hyphens or squeeze on a device.
+- **Fix:** make the fixture row wider than any test device. Then assert one of:
+  - the last cell's maxX is greater than the message element's maxX, or
+  - the long token's height equals `one`'s height within 1pt.
+
+**H4. The characters acceptance 10 protects appear in none of the strings it runs on.**
+- The rule: "`-5%`, `12:30`, and `$3` inside a cell stay in that cell…"
+- The scope of the check: "every prefix of every source string in acceptances 1 through 9".
+- None of those strings contain `%`, `$`, or `12:30`, and `:` only appears in delimiter rows.
+- The existing `testNoPrefixOfAReplyLosesCharacters` removes `#->`*_` from both sides for every character. The natural way to satisfy the exception list is to extend that filter with `|:[]\x`. That test goes green and cannot see a lost `-` or `:` inside a cell.
+- **Fix:**
+  - Add a fixture to acceptance 3 or 4 with cells `-5%`, `12:30`, `$3`, and a lone `x`.
+  - Say the exclusions apply by position (the structural characters at that spot), never by removing a character everywhere.
+
+**H2. The expected output for `Pros | Cons\n-` is wrong. This is a new defect from the round 2 fix.**
+- Acceptance 5: "`Pros | Cons\n-` is a paragraph `Pros | Cons` and a paragraph `-`."
+- `Markdown.blocks` joins consecutive non-blank lines into one paragraph with a space (`paragraph.joined(separator: " ")`, pinned by `testSoftBreaksBecomeSpaces`).
+- A lone `-` is neither a bullet (that needs `- `) nor a rule (that needs 3 characters).
+- So today's output is `[.paragraph("Pros | Cons -")]`. GFM on the desktop renders it as a setext h2.
+- **Failure:** to get two paragraphs, the implementer needs a new rule:
+  - If a lone `-` flushes the paragraph, soft-break behavior changes for all prose.
+  - If it only flushes after a line with a `|`, then `Pros\n-` and `Pros | Cons\n-` wrap differently.
+- **Fix:** expect `[.paragraph("Pros | Cons -")]`. The mutation only needs "not a table".
+
+---
+
+#### Medium
+
+**M1. The acceptance 10 check fails on correct output as written.**
+- "walk the blocks in order and concatenate each cell or item string" leaves out paragraphs, so acceptance 1's `Lead-in prose` and `After` are dropped.
+- The exception list reads as closed ("…consumed as structure at that position: cell-boundary `|`, … and the backslash of `\|`"). It is missing:
+  - the quote `>` from acceptance 6;
+  - the rule `---` from acceptance 5, which is not a delimiter row under the new "contains at least one `|`" rule;
+  - fence markers.
+- "A character moving means…" defines a term that no sentence forbids. A no-move rule couldn't hold anyway: a header line is a paragraph until its delimiter arrives.
+- **Fix:** concatenate every block's text (paragraph, heading, item, cell, quote, code). List `>`, rule characters, and fence lines as exclusions. Remove the "moving" definition or use it.
+
+**M2. Walkie sample 2 contradicts weld condition 5.**
+- Acceptance 6: "A weld runs only when all of these hold: … the next line is not itself a delimiter row."
+- Line 1, `| A | B | |---|---| | 1 | 2 |`, is followed by `| :--- | ---: |`. So the renderer does not weld it: line 1 becomes an 8-cell header, and `| - | - |` and `--- | ---` become body rows.
+- The expected speech `A, B. 1, 2.` requires a weld. So Scope's "`speakable` may call `Markdown.blocks`" cannot produce this string, and the screen and the speech disagree on the same message.
+- **Fix:** either put a blank line after line 1 of sample 2, or say Walkie welds each line without the lookahead and drop the `Markdown.blocks` option.
+
+**M3. Some absence checks can never fail.**
+- Acceptance 2 says the card would not show "`2 rows`". `SQLResultTableView` draws `Text("\(rows.count) rows")`, and the fixture has one body row, so the restored card shows `1 rows`. The grid still fails through `DATA TABLE`, `Copy CSV`, and the uppercase headers, so this is not High.
+- "No label equals `**Quant**`" can never happen: the unrendered cell would be `**Quant** baskets`.
+- "`| --- | --- |` [is] absent" doesn't say equals or contains. With equals, a paragraph fallback labelled `| Alpha | Beta | | --- | --- | …` passes.
+- **Fix:** use `1 rows` or "no label contains `rows`", "no label contains `**`", and "no label contains `| --- | --- |`".
+
+**M4. Alignment is untested.**
+- Acceptance 8 says the alignments apply to header and body. No fixture uses `:---:`, and the mutation table has no alignment row.
+- The UI fixture has `:---` and `---:` but only asserts `Quant baskets`.
+- The width assertion ("`Alpha`'s width matches `one`'s width") pushes each cell's frame to the column width. That makes text alignment invisible to XCUITest.
+- **Failure:** `:---:` mapped to leading, or drawing that ignores alignment, passes everything.
+- **Fix:** add a package fixture with `:---:` → center plus a mutation row. Either name the screenshot as the only check for drawn alignment, or assert on an inner text element.
+
+**M5. The preview's parent chain is not specified.**
+- Acceptance 14: "add two bot messages and the user message … Do not change `activeLeafId`."
+- `Store.visibleTranscript` walks `parentId` up from the active leaf (`preview-gmail-reply`). Messages added after the reply, or without a parent, are not shown.
+- The only compliant layout is to re-parent `preview-gmail-reply` onto the last new message. The requirement doesn't say that, doesn't give the order, and doesn't name the file. `ThreadPreviewPages.json` also carries an `activeLeafId`, which `merge` applies.
+- **Fix:** state the chain `preview-gmail-user → grid → tasks → user-md → preview-gmail-reply` in `ThreadPreview.json`, with the reply's `parentId` changed.
+
+**M6. Most acceptance 9 labels have no test.**
+- "The accessibility label is the exact string in the last column."
+- The UI test checks 2 of the 7 rows. Acceptance 13's package tests cover "the split and both spoken strings", not labels.
+- `- [ ]` → `not completed` (no trailing comma) and `1) [ ] open` (number not in the label) can therefore ship wrong.
+- "Localized for … Brazilian Portuguese" gives no strings, so a missing pt-BR entry ships unnoticed.
+- **Fix:** build the label in a CompanionCore function, package-test all 7 rows, and give the pt-BR strings.
+
+**M7. The Android file list is incomplete.**
+- "The files are `Transcript.kt`, `TranscriptTest.kt`, `ExecutionFeedbackTest.kt`, and `TableReadingOrderTest.kt`."
+- `android/app/src/main/kotlin/com/openmausbot/companion/ui/TranscriptCardViews.kt` cites `SQLResultTableView.swift` at lines 65, 247, and 604 ("the port of …", "exactly the order `SQLResultTableView.swift` builds", "Copy CSV (`SQLResultTableView.swift`)").
+- **Fix:** add it, or replace the fixed list with "every hit of `grep -rn 'SQLResultTableView\|parsedTable\|tableCells\|isTableSeparator' android`".
+
+---
+
+#### Low
+
+- **L1 — How the identifier attaches.** "Each transcript message exposes accessibility identifier `message-<id>`. Queries … are inside that element." SwiftUI puts a container's identifier on each child unless the container is `.accessibilityElement(children: .contain)`. The user bubble is a single `Text`, so the identified element is the text itself, and `descendants(matching:)` doesn't include it. The requirement should say the row contains its children. The `message-` prefix is also shared with `message-input`.
+- **L2 — Weld boundaries.** Where the header ends and the delimiter starts is undefined when there's no empty join. `| A | B | --- | --- | 1 | 2 |` meets all five conditions as written. Two more cases are open: a header cell shaped like a delimiter (`| A | - | |---|---| …`, given "One hyphen is enough") and a trailing empty segment (`| 1 | 2 | |`).
+- **L3 — Delimiter cells.** Valid delimiter cells are defined only by example. `| : | : |`, `| --- | |`, `| - - |`, and `:-:` are unspecified.
+- **L4 — "Under a list item."** This is fixed only for the line right after the item. A blank line between `- intro` and an indented table, or a 3-space table under `1. intro`, collides with "Top-level indent of 1 to 3 spaces does not block a table."
+- **L5 — Bullet vs pipe row.** Which wins is unspecified for `- a | b` right after a table body, and for whether `Revenue | Cost\n- | -` has a delimiter row or a bullet.
+- **L6 — Center-line tolerance.** "Within one point" applies to width only. "Share a horizontal center line" has no tolerance, so it is flaky with a bold header or gets loosened ad hoc.
+- **L7 — Screenshot.** The transcript anchors to the bottom and the reply stays last, so the grid may be above the fold. Require scrolling the grid and task messages into view before attaching.
+- **L8 — Caret.** Acceptance 16's "caret sits on the last cell or the last task line" has no check: the preview has no streaming text and the package tests don't draw. It's also unclear which cell gets the caret when the last row is short.
+
+**Deliberate GFM differences, not findings:** pipes inside code spans don't split cells, extra body cells add columns, a header/delimiter count mismatch is still a table, and a line with no pipe ends the table. "Where this document differs, the sentence here wins" covers these.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:19:27Z]
+### 🔍 [Codex/gpt-5.6-sol-max] 要件レビュー（3巡目）
+
+### 🔍 Requirements review
+
+**Verdict: request changes**
+
+#### Critical
+
+なし。
+
+#### High
+
+1. **Acceptance 10 の保存則が既存 block 構文と矛盾しています。**
+
+   > “For every prefix of every source string in acceptances 1 through 9 … Every non-whitespace character … appears … except …”
+
+   Acceptance 5 の `Pros | Cons\n---` は明示的に paragraph + rule ですが、現在の `Markdown.blocks` では `.rule` に文字列がなく、`---` は出力から消えます。これは delimiter row ではないため列挙された例外にも入りません。同様に、Acceptance 6 の quote の `>` と fence の backticks も block 出力では消えますが、例外にありません。
+
+   「構造として消費された文字」を一般的な包括例外と読むなら、その後の列挙が非網羅的でテスト判定不能です。rule、quote、fence など既存構造を明示的に例外へ加えるか、保存則の対象を table/task fixture に限定し、全 `MarkdownBlock` case の文字列抽出方法を定義する必要があります。
+
+#### Medium
+
+1. **delimiter row の文法が必要条件しか定義されていません。**
+
+   > “A delimiter row contains at least one `|`.”  
+   > “One hyphen is enough.”
+
+   各 delimiter cell が「任意の前後 colon と1個以上の hyphenだけ」なのかが明記されておらず、`A | B\nword | word\n1 | 2` の2行目まで delimiter と認識する過剰に寛容な実装が、現在の全 fixture を通れます。GFM の通常規則から hyphen 数を変更しているため、GFM への暗黙依存でも一意に決まりません。piped malformed delimiter の negative fixture が必要です。
+
+2. **`center` を生成する delimiter が契約化されていません。**
+
+   > “These alignments are `leading`, `trailing`, and `center`.”
+
+   例は `---`、`:---`、`---:` だけで、`:---:` が `center` になる例がありません。`center` case を定義しただけで一度も生成しない実装も、列挙された期待値を通れます。header/body 両方が center になる source fixture を追加すべきです。なお padded dash が `leading` である点は直っています。
+
+3. **wide-row fixture は横スクロールを実際には検証しません。**
+
+   > “Acceptance 14's grid is the check that a row stays one row and scrolls sideways instead of stacking. The long token is the wide cell.”
+
+   `very-long-beta-cell-token` は simulator の message 幅を必ず超えるとは規定されておらず、Acceptance 14 に swipe やスクロール後の位置確認もありません。単なる非 wrapping `HStack` や clipping でも、cell order、同一行、列幅一致を満たせます。確実に viewport を超える fixture と、message 内を横 swipe して末尾 cell が移動・表示される assertion が必要です。
+
+4. **Brazilian Portuguese の VoiceOver 契約が exact ではありません。**
+
+   > “The words `completed` and `not completed` are localized for English and Brazilian Portuguese.”
+
+   exact label は英語だけで、pt-BR の期待文字列も locale test もありません。英語 fallback や不適切な翻訳でも「localization entry を追加した」として通せます。pt-BR の完成・未完成それぞれの exact label を決める必要があります。
+
+#### Low
+
+1. **user message の literal 表示を UI test が部分的にしか拘束していません。**
+
+   > “A user message … shows that source, including the delimiter and the brackets.”
+
+   Preview assertion は `| --- | --- |` と `[x] done` の包含だけです。header/body pipes、task の `- `、改行の一部を変換・欠落させても通ります。message-scoped な exact label、または全行・全 marker の assertion が必要です。
+
+2. **task の期待ラベルが存在しても、余分な VoiceOver stop を許します。**
+
+   > “The accessibility label is the exact string in the last column.”  
+   > “Inside it, a label equals `completed, Ship the notes` …”
+
+   存在確認と一部 raw-label の不在確認だけなので、期待ラベルに加えて checkbox glyph や本文が別 accessibility element として読まれる実装を排除できません。task row が単一の accessibility element であり、余分な child label がないことまで指定すると確実です。
+
+#### Round 2 re-check
+
+別個の whole-message grid fixture、`message-<id>` 内への query scope、multiline/welded extra-cell source、bare-hyphen negative、英語の completed/not-completed exact labels、2本の Walkie exact strings と prose delimiter 文は修正されています。現在の `SQLResultTableView` は `DATA TABLE`、`Copy CSV`、大文字 header を出すため、復活させれば grid fixture は失敗します。
+
+Streaming は上記 High の矛盾が残り、alignment は語彙と padded-leading は直りましたが center の source mapping が残っています。
+
+要件書は全文を読み、関連コードとして `Markdown.swift`、`MarkdownTests.swift`、`Walkie.swift`、`WalkieTests.swift`、`Store.swift`、`ChatView.swift`、`MarkdownText.swift`、`SQLResultTableView.swift`、preview fixture と既存 UI test の該当部分を確認しました。`docs/design/issue-1706-design.md` は読んでいません。ファイル編集、テスト実行、`gh` 実行はしていません。
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:19:28Z]
+### 🔍 [Grok/grok-4.6-xhigh] 要件レビュー（3巡目）
+
+### 🔍 Requirements review
+
+**Verdict: request changes**
+
+This is round 3, last requirements round. I read the current `docs/requirements/issue-1706-requirements.md` in full and checked the round-2 claims against today's code, not against the finding list. Code actually read: `ios/App/ChatView.swift` (`parsedTable`, `TextBubble`, `MessageRow` copy/select, `StreamingBubble`), `ios/App/Cards/SQLResultTableView.swift`, `ios/App/MarkdownText.swift`, `ios/App/AttachmentViews.swift` (`FilePreviewItem.text` truncation, `FilePreviewView`), `ios/Sources/CompanionCore/Markdown.swift`, `Walkie.swift`, `Store.swift` (`visibleTranscript`), `ChatPreferences.swift` (`rosterPreview` / `previewText`), `ios/Package.swift`, `ios/App/ThreadPreview.json`, `ios/App/ImagePreview.json` (start of the Gmail thread), `ios/UITests/ThreadNavigationUITests.swift` (`transcriptContains`), `ios/UITests/ComposerReturnUITests.swift`, `ios/Tests/CompanionCoreTests/MarkdownTests.swift` (prefix helper), `WalkieTests.swift`, `src/lib/markdown-tables.ts` (`isDelimiterRow`, `splitInlineTable`), and the Android comments in `TranscriptCardViews.kt`. I did not read `docs/design/issue-1706-design.md`. I did not run tests, builds, or `gh`. I did not edit files.
+
+**Round 2 re-check (against current iOS/preview code)**
+
+| Round 2 item | Status |
+|---|---|
+| Whole-message pipe table on preview must fail while `parsedTable` still exists; mixed task message must not be the only fixture | **Closed.** `preview-gmail-grid` is the acceptance 2 table. Today's `parsedTable` requires every non-empty line to start and end with `\|` and at least three lines; that fixture qualifies. `SQLResultTableView` still draws `DATA TABLE`, `Copy CSV`, and uppercased headers (`ALPHA`, not `Alpha`). |
+| UI queries scoped to `message-<id>` because `transcriptContains` searches the whole screen | **Closed in wording.** `transcriptContains` is still `staticTexts` + `label CONTAINS` over the app. `ChatView.swift` still has no `message-<id>` identifier (only `message-input`). Acceptance 14 now queries inside `message-<id>`. |
+| Streaming measured on `Markdown.blocks`; drawing may hide `*`; `\|` backslash is structural; pipe inside a code span is not | **Closed in wording.** Acceptance 10 is on block strings; acceptance 7 is drawing; the backslash and `` `a\|b` `` sentences are there. A weaker duplicate check is new (M1). |
+| Multiline extra cells grow a column; welded extra cells wrap; both have source strings | **Closed.** |
+| Alignments are only `leading` / `trailing` / `center`; padded dashes are leading | **Closed as words.** `center` still has no source string (M2). |
+| A delimiter row contains at least one `\|`; `Pros \| Cons` plus a bare hyphen is not a table | **Closed.** |
+| VoiceOver labels exact; both completed and not completed in the fixture | **Closed.** |
+| Walkie has two exact strings, including prose that contains a delimiter run | **Added, and the new second sample fights acceptance 6 (H1).** |
+
+---
+
+#### Critical
+
+None.
+
+#### High
+
+**H1. The new Walkie sample cannot be the stated spoken string under the weld rule and the delimiter grammar.**
+
+Hits: Acceptance 6, “A weld runs only when all of these hold: … the next line is not itself a delimiter row.” Acceptance 5, “`| A | B |\n| - | - |\n| 1 | 2 |` is a table” and “One hyphen is enough.” Acceptance 11, the second source whose first lines are
+
+```text
+| A | B | |---|---| | 1 | 2 |
+| :--- | ---: |
+| - | - |
+--- | ---
+```
+
+and whose spoken string begins `A, B. 1, 2.` plus “Delimiter-only lines are absent, including alignment marks and a one-hyphen delimiter.” Also: “`speakable` may call `Markdown.blocks` or scan lines itself. The spoken strings are the contract.”
+
+- `| :--- | ---: |` is a delimiter row (acceptance 4 uses that same shape as a delimiter). The line above it is a weld candidate whose next line is therefore a delimiter, so the weld **must not run**.
+- Desktop `splitInlineTable` uses the same next-line guard (`!isDelimiterRow(source[index + 1] ?? "")` in `markdown-tables.ts`). I am not treating desktop as the product contract; it shows the condition is not ambiguous.
+- Without a weld, line 1 is a pipe row followed by a delimiter, so it becomes one wide header (`A`, `B`, empty, `---`, `---`, empty, `1`, `2`), not two rows `A, B` / `1, 2`. The golden string needs the weld.
+- The next three lines are themselves a legal table under acceptance 5: header `| :--- | ---: |`, one-hyphen delimiter `| - | - |`, body `--- | ---`. Those cells would be spoken unless an unstated rule says a delimiter-shaped line cannot be a header. The golden string requires them to be silent.
+
+An implementer who calls `Markdown.blocks` from `speakable` (now allowed) cannot satisfy 6 and 11 together. An implementer who scans lines can mint `A, B. 1, 2.` while the splitter still draws a wide table, so the second golden no longer pins speech to the on-screen grid. That is the round-2 Walkie hole coming back through the newly added sample.
+
+Close it by making the second Walkie source a sequence the rest of the document already knows how to parse: a welded table whose next line is **not** a delimiter, then delimiter-only lines that are **not** a header-plus-delimiter pair (blank lines between them), then the tasks, then the prose sentence. Keep both exact spoken strings.
+
+---
+
+#### Medium
+
+**M1. Acceptance 10 is a subsequence check, so duplicated cells pass.**
+
+Hits: “Every non-whitespace character of that prefix appears in that concatenation, in the same order, except characters the parser consumed as structure at that position…”
+
+That is source ≼ output, not equality. A splitter that repeats the last cell still has every source character in order. Today's house test in `MarkdownTests.swift` compares filtered strings with `XCTAssertEqual`. The rewrite dropped that equality. Require the concatenation (minus the listed structural marks) to **equal** the kept source characters.
+
+**M2. `center` is named and never shown; `trailing` is never measured on the preview.**
+
+Hits: Acceptance 4, “These alignments are `leading`, `trailing`, and `center`.” Acceptance 8, “`leading`, `trailing`, and `center` from acceptance 4 apply to the header and the body of that column.” Acceptance 14's grid, whose delimiter is `| --- | --- |` (both leading). Acceptance 14's tasks table, which has `| :--- | ---: |` but only checks labels.
+
+There is no `:---:` source anywhere in this file. Package tests can store `trailing` / `center` and `MarkdownText` can still draw every column leading. The grid geometry does not catch that.
+
+**M3. The Kotlin “must update” list is short of the files that actually name the deleted card.**
+
+Hits: Non-scope, “Kotlin comments that cite `SQLResultTableView.swift` or describe that card as the live iOS behavior must be updated… The files are `Transcript.kt`, `TranscriptTest.kt`, `ExecutionFeedbackTest.kt`, and `TableReadingOrderTest.kt`.”
+
+`android/app/src/main/kotlin/com/openmausbot/companion/ui/TranscriptCardViews.kt` cites that Swift file in three comments (the card port, row-major reading order, and Copy CSV). An implementer who only touches the listed four leaves those pointing at a deleted file. Android behavior stays; the comments still have to move.
+
+**M4. “Do not change `activeLeafId`” does not put the three new messages on the displayed branch.**
+
+Hits: Acceptance 14, “On Pepper's launch thread (`preview-gmail`…) add two bot messages and the user message from acceptance 12. Do not change `activeLeafId`.”
+
+`ThreadPreview.json` has `activeLeafId` `preview-gmail-reply` with parent `preview-gmail-user`. `visibleTranscript` walks `parentId` from that leaf to the root. Messages appended as children of the reply are off-screen unless the leaf moves. Messages that should show with the leaf unchanged have to become **ancestors** of `preview-gmail-reply` (reparent the existing reply). The document never says that. The headed test would fail rather than ship green, but the fixture instruction as written does not produce the screen it then queries.
+
+**M5. The “wide” token may never overflow, so sideways scroll is unobservable.**
+
+Hits: Acceptance 15, “Acceptance 14's grid is the check that a row stays one row and scrolls sideways instead of stacking. The long token is the wide cell.” Acceptance 14, “The long token is not wrapped onto a second line.”
+
+`very-long-beta-cell-token` is 25 characters. Shared mid-lines and shared column widths still prove two rows. They do not prove a `ScrollView` unless that token is actually wider than the bubble. I did not read `project.yml`, so I am not naming a simulator. A longer cell, or more columns, is what makes “scrolls sideways” a real check.
+
+**M6. The mutation table still does not fail extra-cell wrap/grow, the `|`-starting weld negatives, or putting `parsedTable` back as a named package mutation.**
+
+Hits: Acceptance 13's five rows, plus “`cd ios && swift test` covers the split and both spoken strings.” Acceptance 3's two extra-cell strings. Acceptance 6's `| A | B | |---|---| then prose` and `| Step | --- | Done |`. Acceptance 14, “Putting the `parsedTable` branch back makes the grid assertions fail.”
+
+A package suite that only implements the mutation table can drop a third multiline cell (GFM), grow a column on the weld (desktop does the opposite), or weld `| Step | --- | Done |`, and still pass 13's named mutations. The SQL-card guard lives only in the UI test, which is correct, but 13 still presents that table as the mutation contract.
+
+**M7. “The marker is not a button” and the ordered `1.` are app drawing with no preview query.**
+
+Hits: Acceptance 9, “The marker is not a button.” “An ordered task shows its number.” The visible-number column for `1. [ ] open` and `1) [ ] open`. Acceptance 13, “It does not prove pixels.” Acceptance 14's tasks fixture, which is only `-` items and label equality.
+
+A `Button` whose accessibility label is `completed, Ship the notes` passes 14. An ordered task whose number is stored on the block and never drawn passes `swift test`. Both are stated product rules with no headed check.
+
+---
+
+#### Low
+
+**L1. `2 rows` is a dead negative on this fixture.** Hits: Acceptance 2 and 14, “does not show … `2 rows`.” Today's caption is `"\(rows.count) rows"` and this table has **one** body row, so the card shows `1 rows`. Absence of `2 rows` already holds on the SQL card. `DATA TABLE`, `Copy CSV`, and `Alpha` vs `ALPHA` still fail if the branch is restored.
+
+**L2. “Concatenate each cell or item string” does not say what happens to paragraph, quote, or code text.** Hits: Acceptance 10. Prefixes of acceptance 1 start as `Lead-in prose`. A literal reading that concatenates only table cells and task items drops those characters and then fails its own invariant. Name the text payload of every block kind, or say “every block's visible text in order.”
+
+**L3. Brazilian Portuguese is required with no oracle.** Hits: Acceptance 9, “The words `completed` and `not completed` are localized for English and Brazilian Portuguese.” The UI test is English-only. English keys reused in `pt-BR` satisfy the sentence.
+
+**L4. Two weld/fence-adjacent negatives still have no string.** Hits: Acceptance 6, “it contains no backtick and no backslash,” and “A line with an odd number of unescaped backticks is not a table row.” The backslash weld is written out. A `|`-starting line that contains `` `a|b` `` is not. Odd backticks have no example.
+
+**L5. Empty cells have no spoken form.** Hits: Acceptance 3 (empty / `2`) and Acceptance 11 (neither sample has an empty cell). `Ada, , ok.` vs skipping the hole is still free.
+
+**L6. `message-<id>` does not say whether children stay separate.** Hits: Acceptance 14, “Each transcript message exposes accessibility identifier `message-<id>`” and “VoiceOver order of those four labels is that same row order.” `.accessibilityElement(children: .combine)` on the bubble merges `Alpha`/`Beta` into one label and kills the exact-label queries. Existing `ThreadNavigationUITests` still need `I’m reviewing Gmail here` as a static text. Say the identifier is on a container whose children remain individual accessibility elements.
+
+---
+
+Round-2 Critical/High on the SQL card, screen-wide `transcriptContains`, streaming-vs-drawing, extra-cell strings, alignment vocabulary, delimiter-needs-pipe, VoiceOver exact labels, and the existence of a second Walkie golden are not being reopened. The remaining High is in the **new** Walkie sample: it asks for a welded 2×2 spoken grid from a source that acceptance 6 is required to refuse to weld.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:19:29Z]
+## Requirements locked after round 3
+
+This was the last requirements round. Critical was 0/3. I am not opening a fourth requirements round.
+
+I checked the Highs against the current splitter and the preview tree, then edited the requirements in place:
+
+- Nested tasks are tasks. A task inside a blockquote, and a table inside a list or quote, stay text. The fixture is `- [ ] parent` plus an indented `- [x] child`.
+- `Pros | Cons` followed by a lone `-` is one paragraph, `Pros | Cons -`, and not a table. A soft break already joins those lines.
+- The second Walkie sample has blank lines, so the weld still runs and the delimiter-shaped lines do not form a table. Speech still drops a delimiter-only line.
+- Streaming equality includes every block's text. The fixture now contains `-5%`, `12:30`, `$3`, and `x`. Exclusions include quote markers, rule lines, and fences, by position.
+- `:---:` is a center column, with a package mutation.
+- The preview parent chain is `preview-gmail-user` → `preview-gmail-grid` → `preview-gmail-tasks` → `preview-gmail-user-md` → `preview-gmail-reply`. The leaf id stays. The wide cell is 80 `W`s inside a named horizontal scroll view. A swipe must move it, and its height matches the short cell.
+- Absence checks are "contains", including `rows` and `**`. The completed task is one element and not a button. The open task is `1. [ ] waiting`, so `1.` is on screen.
+- English and Brazilian Portuguese label words are `completed` / `not completed` and `concluído` / `não concluído`.
+- `TranscriptCardViews.kt` is in the comment-update list.
+
+Design review is next, against this requirements text and `docs/design/issue-1706-design.md`.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:36:55Z]
+### 🔍 [Claude/opus-5.5-xhigh] 設計レビュー
+
+### 🔍 Design review
+
+**Verdict: request changes.** I found 5 High, 9 Medium and 10 Low findings, and no Critical ones. The parser mostly holds up: it matches the requirements and the desktop `markdown-tables.ts` behavior it cites. The main problems:
+
+- Walkie, as designed, cannot produce the second exact spoken string.
+- The task row's accessibility label hides the ordered number that acceptance 14 checks.
+- The UI test would launch without the preview fixture.
+- The test and mutation plan does not match acceptances 10 and 13.
+
+---
+
+#### High
+
+**H1. Walkie cannot produce the second spoken string `A, B. 1, 2. …`**
+- Design, lines 144–152: "`Walkie.speakable` may call `Markdown.blocks` or scan lines itself… A prose line that merely contains a delimiter run is spoken."
+- Design, line 197: "`speakable` does not call `Markdown.blocks`; it has its own line scan."
+- Requirement, lines 230–246: the welded line `| A | B | |---|---| | 1 | 2 |` must be spoken as `A, B. 1, 2.`
+- The Walkie section never says how speech splits a welded line into rows. By the design's own rule, that line "merely contains a delimiter run", so a line scan speaks it as `A, B, , ---, ---, , 1, 2.` The expected sentence breaks and dropped `---` cells never appear.
+- The design also contradicts itself: one section says "may call", the other says "does not call".
+- I traced both samples by hand. Sample 1 and every other line of sample 2 come out right under the line-scan rules. Only the weld line fails.
+- **Fix:** pick one approach.
+  - Either `speakable` goes through `Markdown.blocks`: speak `.table` headers and each row as a sentence, drop all-delimiter paragraphs, and split pipes in other paragraphs.
+  - Or a weld helper in `CompanionCore` is shared by both paths.
+  - Update the "means" paragraph to match.
+
+**H2. The task row's single label swallows the ordered number that acceptance 14 checks**
+- Design, lines 122–126: "A task is the same row as a bullet… with the ordered number when it has one… The row's accessibility label is exactly `completed, <text>` or `not completed, <text>`."
+- Requirement, line 314: inside `preview-gmail-tasks`, "a label equals `1.`" and "a label equals `not completed, waiting`".
+- Requirement, line 197: "Each task is one accessibility element."
+- If the whole row, number included, becomes one element with that label, no element is labeled `1.`. VoiceOver would never read the number either.
+- **Fix:** keep the number as its own element, outside the task element. Only the checkbox and text form the labeled, non-button element.
+
+**H3. The UI test would launch without `-store-preview`, so no fixture loads**
+- Design, lines 228–229: "The test launches with `-threads-preview` and without `-images-preview`."
+- Requirement, line 279: "launches with `-store-preview -threads-preview`".
+- `ios/App/Session.swift:168` loads a preview fixture only when `-store-preview` (or `-computer-switcher-preview`) is present. Otherwise it falls through to `restore()` at line 213.
+- On a fresh simulator that means the unpaired screen, so the test fails. On a developer simulator with a saved pairing, it would connect to a live desktop, which breaks the isolation rule in `AGENTS.md`.
+
+**H4. The streaming test plan contradicts acceptance 10**
+- Design, lines 210–212: "Extend `testNoPrefixOfAReplyLosesCharacters` with a table and a task. Structural `|`, `-`, and brackets are ignored. Letters and digits in cells and items must survive every prefix."
+- Requirement, lines 201–213 ask for:
+  - every prefix of the sources in acceptances 1–9, plus the `| -5% | 12:30 | $3 | x |` sample;
+  - dropping only the characters the parser consumed as structure at each position;
+  - "Equality, not 'the source characters occur somewhere in order'";
+  - `-5%`, `12:30`, `$3` and `x` kept in their cells.
+- Ignoring `-` everywhere lets `-5%` lose its minus sign and still pass. "Letters and digits" lets `%`, `$` and `:` go.
+- The existing test filters `#->`*_` everywhere (`MarkdownTests.swift:180`). Extending it would inherit that mask.
+- The helper must also emit the ordered number for `.task`, and the design should say how whitespace is normalized.
+
+**H5. The mutation list has 2 of the 7 required rows, and the test list skips most acceptance cases**
+- Design, lines 216–221 list only "Do not emit `.table`" and "Do not emit `.task`".
+- Requirement, lines 269–277 also require these mutations:
+  - `Pros | Cons` followed by `-` treated as a table;
+  - a split pipe inside `` `a|b` ``;
+  - a delimiter row or checkbox `x` left in the spoken string;
+  - `:---:` treated as leading;
+  - a third column grown on the welded extra cell.
+- The `.task` mutation must fail "the `+ [X]` row and the nested row", but the test list (lines 201–209) has no `+ [X]` case.
+- The test list also has no cases for:
+  - acceptance 3: the multiline column growth and the welded wrap;
+  - acceptance 4: center alignment, the longer delimiter, and fitting with `\|`;
+  - acceptance 5: none of its six cases;
+  - acceptance 6: the weld negatives, the blank-line and non-row endings, the table followed by a task, 4 spaces or a tab, under a list, in a quote, and 1–3 space indent;
+  - acceptance 9: `1)`, empty `- [ ]`, `[  ]` and `[ x ]`.
+
+#### Medium
+
+**M1. "Not indented under a list item" is never defined**
+- Design, lines 40–42: "…and it is not indented under a list item… a list continuation stays visible text."
+- `Markdown.blocks` (`Markdown.swift:61–114`) looks at each line without memory of earlier lines. `listItem` (lines 128–148) has no continuation state either.
+- The requirements need both of these at once:
+  - `- intro\n  | A | B |…` stays text (lines 163–164);
+  - a top-level table indented 1–3 spaces is still a table (line 168).
+- So the parser needs a list context, and the design never defines it. Open questions:
+  - When does the context start, and does it survive a blank line?
+  - Does it survive paragraph continuation lines under the item?
+  - Is a 0-indent pipe row right after a list item a table?
+  - Does the rule also apply to the weld?
+
+**M2. Where the accessibility identifiers go is not specified**
+- Design, lines 226–228: "Each message exposes `message-<id>` without combining its children… inside `message-preview-gmail-grid-scroll`."
+- No `message-` identifier exists today; only `message-input` at `ChatView.swift:1226`.
+- The design does not say where it goes (`MessageRow`, `ChatView.swift:1303`, or `TextBubble`).
+- It also does not require `.accessibilityElement(children: .contain)`. Without that, SwiftUI copies the identifier onto every child instead of creating a container, and "queries inside that element" stop working.
+- The scroll id is `message-<id>-scroll`, but `MarkdownText.init` (`MarkdownText.swift:24–32`) has no message id to build it from. The design names no API change, no rule for two tables in one message, and no rule for the streaming bubble or file preview.
+- The Impact table (line 185) says callers need "No edit". `TextBubble`'s call at `ChatView.swift:1616` would have to change.
+
+**M3. Cells must fill the column for the width checks, and the design does not say so**
+- Design, lines 116–118: "Column frames use leading, center, or trailing alignment."
+- Requirement, lines 295–297: `Alpha`'s width matches `one`'s, and `Beta`'s matches the long token's, within one point.
+- A bare `Text` in a `Grid` reports its own text width, not the column width, so those checks fail.
+- **Fix:** each cell fills its column (for example `.frame(maxWidth: .infinity, alignment:)`), and the reported frame is checked.
+
+**M4. A delimiter row needs at least one cell**
+- Design, line 75: "A delimiter cell, after trimming, matches `^:?-+:?$`"; design, lines 42–43: "A delimiter row contains at least one `|`."
+- A lone `|` has zero cells once the outer pipes are dropped, so "all cells are delimiters" is vacuously true.
+- `Pros | Cons\n|` would become a table, and a table would flash while `| A | B |\n|` streams in.
+- Desktop `isDelimiterRow` requires `parts.length > 0` (`src/lib/markdown-tables.ts:27`).
+
+**M5. The proposed master section states false behavior and contradicts the master doc**
+- Design, line 169: "A pipe table is a table wherever it sits in the reply."
+- That is false under the non-scope (requirement lines 43–49, 161–167): tables in a list item or a quote, rows indented 4+ spaces or by a tab, and lines with odd backticks all stay text.
+- Design, lines 170–171 add "Spoken replies read…". `docs/ios-companion.md:35–36` says "voice… not part of this version", so the master doc would contradict itself.
+- **Fix:** state the real limits, and reconcile or drop the voice sentence.
+- The section does meet the other two checks: it has no issue number and no history.
+
+**M6. The Impact section misses several affected places**
+- Design, lines 177–197. Missing:
+  - `ios/App/ThreadPreview.json`. It is shared by `ThreadNavigationUITests` (which asserts "I’m reviewing Gmail here" at lines 51, 69 and 193) and `ComposerReturnUITests`. `docs/verification/ios-threads.md:35–38` describes the fixture.
+  - `MessageRow`, where the identifier would go.
+  - `Localizable.xcstrings`. The new `completed` / `not completed` keys need pt-BR `concluído` / `não concluído`, including the empty-text form. The `"Copy CSV"` entry (line 1009) becomes orphaned.
+  - The `speakable` callers: `WalkieView.swift:210,214`, an on-screen caption with `limit: 400`, and `WalkieController.swift:362`.
+- The "means" check lists only the block cases. It skips who consumes the fixture and the identifier, which is the kind of thing that check exists to catch.
+
+**M7. The new UI test would not run in CI**
+- Design, lines 223–231 name no test file or class. Design, lines 241–243 only run it locally.
+- CI runs only `-only-testing:OpenMausCompanionUITests/ThreadNavigationUITests` (`scripts/verify-ios-thread-navigation-ci.sh:51`, called from `ci.yml:397`).
+- A new class would never run in CI, so "putting `parsedTable` back fails the grid assertions" (requirement line 321) would not be enforced.
+- CI also runs on iPad. The design mentions only iPhone.
+- The design also leaves out several acceptance 14 assertions:
+  - the shared center lines;
+  - the height check;
+  - the left swipe that moves the token;
+  - the `DATA TABLE` / `Copy CSV` / `rows` / `| --- | --- |` negatives;
+  - VoiceOver order;
+  - the screenshot attachment.
+
+**M8. The task label uses raw text, and links inside a task become unreachable**
+- Design, line 125: "exactly `completed, <text>`".
+- If `<text>` is the source, `- [x] **Ship** it` is read aloud with its asterisks. The preview only avoids this because its tasks contain no Markdown.
+- Folding the row into one labeled element also makes links inside a task unreachable for VoiceOver.
+- **Fix:** build the label from the inline-rendered characters, and decide what happens to links.
+
+**M9. The Android comment rule is narrower than the requirement, and "not a regression gate" is inaccurate**
+- Design, line 187: "Update comments that name the deleted Swift file."
+- Requirement, lines 60–66 also cover comments that "describe that card as the live iOS behavior" and ask for a pointer to #1707. The design drops the pointer.
+- It also does not list where these comments are:
+  - `Transcript.kt:8–9` and `:178`. Lines 8–9 cite `parsedTable`, which will no longer exist.
+  - `TranscriptTest.kt:11–13`, which cites `parsedTable`, `tableCells` and `isTableSeparator`.
+  - `ExecutionFeedbackTest.kt:406`, which cites `SQLResultTableView.swift:100`.
+  - `TableReadingOrderTest.kt:35`.
+  - `TranscriptCardViews.kt:65, 247, 604`.
+- Design, lines 248–249: "Android unit tests are not a regression gate." But `ci.yml:411–433` runs `:core:test :app:testDebugUnitTest` on every PR with no path filter.
+- Kotlin block comments nest, so a `/*` typed into an edited comment breaks compilation.
+
+#### Low
+
+- **L1. Lines that start another block end a table too.** Design, lines 66–69: "Body lines continue while they are top-level rows… A row is a line that contains `|`." Read literally, `- a | b`, `# A | B` or `> a | b` right after a table become body rows. In GFM, a line that starts another block ends the table.
+- **L2. Say that exactly one empty cell is skipped.** Design, lines 57–58: "Empty cells on a row boundary are the join…" is plural. Desktop skips exactly one (`markdown-tables.ts:66–73`). Skipping all of them breaks `| | 2 | | | 4 |`, though the acceptance 3 test would catch it.
+- **L3. The caret may land on a padding cell.** Design, line 119: "sits on the last cell." In a short or widened row, the last cell can be a padded `""`, so the caret would sit away from the last cell that has text. The model does not record which cells are padding.
+- **L4. Rows after a weld are unspecified.** It is not said whether a following `| 3 | 4 |` line continues a welded table. Desktop keeps it in the same paragraph (`markdown-tables.ts:103–113`), so it parses as another row.
+- **L5. "No tab" is ambiguous.** Design, line 40: it should say "no tab in the leading whitespace". As written, a cell containing a tab could block a table.
+- **L6. Impact names and line numbers.** The Impact table names `view(for:)`; the function is `view(for:tail:)` at `MarkdownText.swift:47`. The rows also lack line numbers. The ones I read: `ChatView.swift:1516–1568`, `1572`, `1597–1598`, `1616`, `2329`, and `AttachmentViews.swift:465`.
+- **L7. Fixture details are unspecified.** The design does not give `role`, `kind` or `at` for the three new messages. Pinning `at` between `…400000` and `…430000` keeps the chain in time order and keeps "newest message" and thread update order unchanged.
+- **L8. Walkie edge cases.**
+  - The scope of the checkbox strip is unstated. Stripping anywhere would eat `[x]` in prose.
+  - `Walkie.swift:56` removes backticks before the pipe handling, so a code span containing `|` gets split.
+  - The fence regex (`Walkie.swift:46`) handles only closed ```` ``` ```` fences. Tables inside `~~~` fences or unclosed fences would be read aloud as cells.
+- **L9. One Android comment becomes partly untrue.** `android/.../ui/MarkdownText.kt:45` says "the port of `ios/App/MarkdownText.swift`". That stops being fully true, though no requirement demands the change.
+- **L10. Small layout and parsing gaps.** A horizontal `ScrollView` takes the full width, so a two-cell table stretches the bubble. The design also does not say whether `\|` inside a code span in a cell becomes `|`, as GFM does.
+
+---
+
+#### Checked and holds
+
+- **Block model.** It can represent center alignment, the welded wrap (`3` / empty), multiline column growth (empty header, `.leading`), header-only and single-column tables, ordered task numbers (`1)` shown as `1.`), and nested tasks.
+- **Table detection.** These match the requirements and the desktop code: 0–3 spaces, 4 spaces or a tab excluded, a pipe required in the delimiter, one hyphen enough, `Pros | Cons\n-` as one paragraph, `---` as a rule, fences first, and blank or non-row lines ending a table.
+- **Weld preconditions** match `splitInlineTable` (`markdown-tables.ts:48–60`).
+- **Preview chain.** The parent chain, `activeLeafId`, and the re-parented reply match the requirement exactly.
+- **Deletion.** `parsedTable`, `tableCells`, `isTableSeparator` and `SQLResultTableView` are the only references in iOS. Nothing else in the iOS app uses the file, and the Xcode project is generated from `project.yml`, so deleting the file needs no project edit.
+- **Callers named in Impact** all exist: the streaming bubble, `FilePreviewView`, `TranscriptCards.table`, and `MarkdownTests.text`.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:36:56Z]
+### 🔍 [Codex/gpt-5.6-sol-max] 設計レビュー
+
+### 🔍 Design review
+
+**Verdict: request changes.**
+
+The block model can represent center alignment, multiline growth, welded wrapping, ordered numbers, and nesting. The design nevertheless misses several locked verification and integration requirements.
+
+#### Critical
+
+None.
+
+#### High
+
+1. **The streaming test is materially weaker than the required equality invariant.** The design says to test only “a table and a task” while globally ignoring pipes, hyphens, and brackets and checking that letters/digits survive ([design:210](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:210)). The requirement covers every prefix of every source in acceptances 1–9 plus the `-5%`/`12:30`/`$3` case, with exact equality after dropping structure only at positions where it was consumed ([requirements:201](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:201)). Broadly ignoring `-` would conceal loss from `-5%`; checking only letters/digits would conceal loss of `:`, `$`, and other content. The current helper already uses this kind of broad filtering ([MarkdownTests.swift:172](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/Tests/CompanionCoreTests/MarkdownTests.swift:172)), so the design must explicitly replace it with the locked normalization.
+
+2. **The preview test plan omits much of the locked regression.** The design records the parent chain, message identifiers, scroll identifier, and 80-character token, but then only promises unspecified “grid assertions” ([design:223](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:223)). The requirements additionally mandate exact fixture sources and roles, message-scoped queries, cell order and geometry, equal row heights, no wrapping, swipe movement, VoiceOver order, absence of old-card chrome, exact task labels and traits, literal user syntax, and a screenshot ([requirements:279](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:279), [requirements:292](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:292), [requirements:321](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:321)). The design’s launch sentence also omits required `-store-preview`; `Session` only loads `ThreadPreview.json` when that flag is present ([Session.swift:168](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/Session.swift:168)).
+
+3. **The required mutation matrix has been reduced from seven mutations to two.** The design records only suppression of `.table` and `.task` ([design:216](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:216)). The locked requirements also require mutations for the lone-hyphen negative, a pipe inside a code span, spoken delimiter/checkbox leakage, center alignment, and welded-extra-cell wrapping, with each mutation failing its named test ([requirements:265](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:265)).
+
+#### Medium
+
+1. **The message and scroll accessibility identifiers have no specified code path.** The design requires `message-<id>` and `message-<id>-scroll` ([design:227](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:227)), but its impact table only identifies the parsed-table branch in `ChatView.swift`. Currently `MarkdownText.init` receives no message ID ([MarkdownText.swift:24](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/MarkdownText.swift:24)), and `MessageRow` has neither the required identifier nor a children-`.contain` accessibility container ([ChatView.swift:1329](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/ChatView.swift:1329)). The impact section must identify `MessageRow` and the settled `TextBubble` → `MarkdownText` call as edits and explain how the nested scroll receives the message-derived identifier.
+
+2. **“Not under a list item” is asserted but not designed or tested.** The design calls such rows “top-level” and performs table detection before list-item detection ([design:40](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:40), [design:60](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:60)). The current parser has no list-continuation state; it processes each line independently ([Markdown.swift:61](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/Sources/CompanionCore/Markdown.swift:61)). A standalone two-space-indented table must parse, while the identical lines following `- intro` must remain text ([requirements:161](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:161)). The design must define how that context is tracked and add the required positive and negative cases.
+
+3. **The proposed master text overstates current behavior.** “A pipe table is a table wherever it sits in the reply” ([design:169](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:169)) contradicts the locked exclusion for tables nested in list items or blockquotes ([requirements:43](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:43)). The section otherwise avoids issue numbers/history, but this sentence must be limited to supported top-level tables.
+
+4. **The Android impact inventory is not the required concrete file list.** The design names `android/core/.../Markdown.kt`, which contains no affected `SQLResultTableView.swift` comment, and abbreviates the real symbol as `Transcript.kt table` rather than `TranscriptCards.table` ([design:187](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:187), [Transcript.kt:112](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/android/core/src/main/kotlin/com/openmausbot/companion/core/Transcript.kt:112)). The required comments actually occur in [Transcript.kt:9](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/android/core/src/main/kotlin/com/openmausbot/companion/core/Transcript.kt:9), [TranscriptTest.kt:11](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/android/core/src/test/kotlin/com/openmausbot/companion/core/TranscriptTest.kt:11), [TranscriptCardViews.kt:62](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/android/app/src/main/kotlin/com/openmausbot/companion/ui/TranscriptCardViews.kt:62), [ExecutionFeedbackTest.kt:403](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/android/app/src/test/kotlin/com/openmausbot/companion/ui/ExecutionFeedbackTest.kt:403), and [TableReadingOrderTest.kt:30](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/android/app/src/test/kotlin/com/openmausbot/companion/ui/TableReadingOrderTest.kt:30). The impact table should name all five and require each revised comment to describe Android’s card and point to #1707, as required ([requirements:60](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:60)).
+
+5. **The localization impact is missing and the Portuguese strings are not locked.** The design merely says the task-state words are localized ([design:124](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:124)); the requirement specifies exact `concluído` and `não concluído` strings ([requirements:194](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:194)). Because this app uses [Localizable.xcstrings](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/Localizable.xcstrings) as its English-source/Portuguese catalog ([AppLanguage.swift:3](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/AppLanguage.swift:3)), that file is a real required impact and should be named.
+
+#### Low
+
+1. **Walkie’s implementation strategy is internally inconsistent.** The Walkie section permits either `Markdown.blocks` or a line scan ([design:144](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:144)), while the impact conclusion says definitively that it uses its own line scan ([design:197](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:197)). The stated scan rules only drop lines made entirely of delimiter cells; they do not explain how the embedded delimiter run in the second sample’s welded first line is removed. The blank lines are correctly preserved in the sample, but the design should select one strategy and explicitly reuse the weld split or define its equivalent so the exact string is achievable ([requirements:230](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:230)).
+
+2. **The streaming caret is specified for tables but not tasks.** The design explicitly places a table-tail caret in the last cell, then describes task drawing without mentioning `tail` ([design:118](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:118)). The requirement also mandates the caret on the last task line ([requirements:328](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:328)). The existing bullet helper already accepts `tail` ([MarkdownText.swift:107](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/ios/App/MarkdownText.swift:107)); the task case and verification plan should explicitly preserve that behavior.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:36:58Z]
+### 🔍 [Grok/grok-4.6-xhigh] 設計レビュー
+
+### 🔍 Design review
+
+**Verdict:** request changes
+
+The block struct can hold the locked shapes: `.center`, a welded leftover as the next padded row, a multiline extra cell as a wider header with `""` and `.leading`, `task.number` for `1.` / `1)`, and `task.indent` for nesting. Walkie’s cell-join / delimiter-drop / checkbox-strip rules can produce both exact spoken strings, including sample 2’s blank lines. Impact names real symbols (`Markdown.blocks`, `view(for:)`, `MarkdownTests.text`, `parsedTable` / `tableCells` / `isTableSeparator` in `TextBubble`, `SQLResultTableView`, `StreamingBubble`’s `MarkdownText`, `FilePreviewView`, `Walkie.speakable`, `Transcript.kt` `table`). Those paths exist; no invented callers.
+
+The holes are control flow, preview wiring, the streaming contract, and the proposed master sentence. An implementer who follows this document can fail acceptances 6, 10, 13, 14, and 15.
+
+---
+
+## Critical
+
+None. The product lock is still reachable if the Highs below are written into the design.
+
+---
+
+## High
+
+### H1. Preview launch flags omit `-store-preview`
+
+Design Tests: “The test launches with `-threads-preview` and without `-images-preview`.”
+
+Acceptance 14: launch with `-store-preview -threads-preview` and without `-images-preview`. `Session.swift` 168–170 loads `ThreadPreview.json` only when `-store-preview` (or `-computer-switcher-preview`) is present; `-threads-preview` only chooses that resource inside that branch. A test that follows the design never hydrates Pepper’s Gmail thread.
+
+`docs/verification/ios-threads.md` and `ThreadNavigationUITests.launchPreview` already pass both flags. The Verification section points at that runbook; the Tests section contradicts it.
+
+---
+
+### H2. Preview wiring and assertions stop short of acceptance 14 / 15
+
+Design specifies the parent chain, `activeLeafId`, moving `preview-gmail-reply`’s `parentId`, the 80×`W` token, `message-preview-gmail-grid-scroll`, and `message-<id>` without combining children.
+
+Acceptance 14 also requires:
+
+- queries **inside** `message-<id>` (existing `transcriptContains` at `ThreadNavigationUITests.swift` 285–287 searches the whole screen with `CONTAINS`)
+- cell labels in order `Alpha`, `Beta`, `one`, 80×`W`
+- shared header center line, shared body center line, column widths and the long token’s height within one point
+- a left swipe that moves the long token (acceptance 15)
+- no `DATA TABLE` / `Copy CSV` / `rows` / `| --- | --- |` **inside that message**
+- VoiceOver order of those four labels
+- `preview-gmail-tasks` source and labels `Quant baskets`, `1.`, `completed, Ship the notes`, `not completed, waiting`, not a button, no `**` or `[x] Ship the notes`
+- `preview-gmail-user-md` still showing `| --- | --- |` and `[x] done`
+- a screenshot attachment
+- freeze of `ImagePreview.json`
+
+Drawing and Chat bubble never assign `message-<id>` or the scroll id. `MessageRow` (`ChatView.swift` 1303) has no accessibility identifier; `ChatView.swift` only sets `header-threads`, `thread-switcher`, and `message-input`. User messages use `Text`, not `MarkdownText`, so the identifier has to sit on `MessageRow` / `TextBubble`. The scroll id is `message-<messageId>-scroll`; `MarkdownText` has no message id, and Impact says `StreamingBubble` and `FilePreviewView` do not change. The design never adds an optional id parameter (or equivalent) with a default, so the drawing site cannot produce the locked identifier.
+
+---
+
+### H3. Streaming test plan contradicts acceptance 10
+
+Design Tests: extend `testNoPrefixOfAReplyLosesCharacters`; “Structural `|`, `-`, and brackets are ignored. Letters and digits in cells and items must survive every prefix.”
+
+Acceptance 10: for every prefix of acceptances 1–9 **and** `| -5% | 12:30 | $3 | x |…`, concatenate block text (paragraph, heading, ordered number, task/bullet text, each cell, quote, code), drop only consumed structure, and require **equality**. The minus in `-5%`, the colons in `12:30`, `$3`, and cell `x` stay.
+
+The current helper (`MarkdownTests.swift` 180–181) already strips every `-`. Extending that filter makes `-5%` untestable. “Letters and digits must survive” is a subsequence check; acceptance 10 forbids that.
+
+---
+
+### H4. Package tests and the mutation table omit locked cases
+
+Design mutation table has two rows (no `.table`, no `.task`). Acceptance 13 requires seven mutations, each failing a named test, including:
+
+- `Pros | Cons` followed by `-` treated as a table → acceptance 5’s negative
+- `:---:` treated as leading → acceptance 4’s center column
+- welded extra cell grown into a third column → acceptance 3’s wrap (`| A | B | |---|---| | 1 | 2 | 3 |` stays two columns, body `1`/`2` then `3`/empty)
+
+Tests mention “welded one-line table, including a real empty cell and a short trailing row” and “alignment”. They do not name the wrap-vs-grow split or `Pros | Cons\n-`. The block invariant can represent both extra-cell outcomes; without those tests the two body paths can be implemented as one.
+
+---
+
+### H5. A non-row that ends a table is not left for the outer loop
+
+Design: “A blank line or any non-row ends the table.”
+
+Acceptance 6: `| A | B |\n| --- | --- |\n| 1 | 2 |\nAfter` is the table then paragraph `After`; the same table followed by `- [x] done` is the table then a completed task. No blank line.
+
+`Markdown.blocks` today consumes with `lines.first` / `dropFirst` (`Markdown.swift` 61–62). The design never says the terminator is peeked and reparsed. Consuming it and `break`ing drops `After` and the trailing task.
+
+---
+
+### H6. “Under a list item” is a gate without an algorithm
+
+Design: a table row has at most three leading spaces, no tab, and “is not indented under a list item”; “a list continuation stays visible text.”
+
+Acceptance 6: `- intro\n  | A | B |\n  | --- | --- |\n  | 1 | 2 |` stays a list item plus visible pipes. Acceptance 6 also: top-level indent of 1 to 3 spaces is still a table. Indent alone cannot decide both.
+
+`listItem` (`Markdown.swift` 128–148) classifies one line. There is no list container and no continuation state. Pipe lines under `- intro` have two spaces, contain `|`, and are not list markers. Table detection “before list items” plus “0–3 spaces” emits a table for that fixture.
+
+The design needs an operational rule (previous block is a list/task, extra indent, no blank line, or equivalent) that still allows a top-level 1–3 space table.
+
+---
+
+### H7. Drawing does not lock one shared column width or a single-line 80-character cell
+
+Design Drawing: “a horizontal `ScrollView` around a `Grid`” and “Column frames use leading, center, or trailing alignment.”
+
+Acceptance 8: each column has one width for header and body. Acceptance 14: `Alpha` width matches `one`, `Beta` matches the long token, long token height matches `one`, within one point. Acceptance 15: the 80-character token does not wrap; a sideways swipe moves it.
+
+`SQLResultTableView` (`ios/App/Cards/SQLResultTableView.swift` 61–90) uses separate header/body `HStack`s and `minWidth: 65`; that layout fails the 1-point check. A Grid cell with `frame(maxWidth: .infinity)` for alignment takes the bubble width, wraps the long token, and never needs a horizontal swipe. The design must say: one `Grid` for header, divider, and body; column width is the max ideal width of that column’s cells; body cells stay one line.
+
+---
+
+### H8. Task accessibility does not satisfy both “one element” and a label that equals `1.`
+
+Design Drawing: the row’s accessibility label is exactly `completed, <text>` / `not completed, <text>` (comma-text omitted when empty); the image is not a button.
+
+Acceptance 9: each task is one accessibility element, not a button, and has no child whose label contains `[x]` or `[ ]`. Acceptance 14: a label **equals** `1.` and a separate label equals `not completed, waiting`.
+
+`checkmark.square.fill` / `square` are their own VoiceOver elements unless children are ignored or combined. Combining the whole row hides `1.` as a queryable label. The design never says how number `Text("1.")`, the image, and the status label share the tree. Existing `marker` (`MarkdownText.swift` 107–117) is an `HStack` of separate `Text`s with no accessibility grouping.
+
+---
+
+### H9. Proposed master text is not current behavior
+
+Proposed `docs/ios-companion.md` section: “A pipe table is a table wherever it sits in the reply.”
+
+After this issue, a pipe table is a table only at the top level with 0–3 spaces. Acceptance 6 / non-scope: under a list item, in a quote, at 4 spaces or a tab, and inside a fence, the pipes stay visible text or code. Master is supposed to state current facts only. That sentence is false on ship. No issue number appears; the defect is the fact, not history.
+
+---
+
+## Medium
+
+### M1. Walkie path disagrees with itself
+
+Walkie: “`Walkie.speakable` may call `Markdown.blocks` or scan lines itself.” Impact means check: “`speakable` does not call `Markdown.blocks`; it has its own line scan.” Acceptance 11 allows either. The means check picks one; the Walkie section leaves both. If someone follows Walkie and speaks from blocks, delimiter-shaped paragraphs (`| :--- | ---: |`, `| - | - |`, `--- | ---` in sample 2) still need the “drop a line whose cells are all delimiter cells even when it is only a paragraph” pass.
+
+### M2. Backtick/backslash refusal is attributed to the wrong desktop function
+
+Design: the weld “matches the desktop rescue (`splitInlineTable` in `src/lib/markdown-tables.ts`)” and “contains no backtick and no backslash.”
+
+`splitInlineTable` (`src/lib/markdown-tables.ts` 48–57) does not look at `` ` `` or `\`. `repairMarkdownTables` skips the whole paragraph when `/[`\\]/` matches (lines 153–155). The weld conditions in acceptance 6 are still the right ones; the citation is wrong.
+
+### M3. Brazilian Portuguese strings and string catalog are missing
+
+Acceptance 9 locks `concluído` and `não concluído`. Drawing says “localized for English and Brazilian Portuguese” without those strings. Impact does not list `ios/App/Localizable.xcstrings`. English UI tests will not catch a missing catalog entry.
+
+### M4. Ordered marker display is unspecified
+
+Acceptance 9: both `1. [ ] open` and `1) [ ] open` show visible number `1.`. Drawing: “with the ordered number when it has one.” Existing ordered items render `"\(number)."` (`MarkdownText.swift` 65–66). The task path never says it reuses that format.
+
+### M5. Several in-scope fixtures are absent from Tests
+
+Missing package cases: header-only table (in scope), top-level 1–3 space indent (acceptance 6), 4 spaces / tab, quote `> | A | B |` / `> - [x] done`, table then `After` with no blank line, `- [ ]` empty text, `1)` tasks, parent+child nested pair. Detection prose names some of these; Tests does not, so they will not be mutation-gated.
+
+### M6. Streaming caret on a trailing task
+
+Acceptance 16: caret on the last cell **or the last task line**. Drawing mentions the caret only for the last table cell. Reusing `marker(..., tail:)` would place it; the task case never says to pass `tail`.
+
+### M7. Android comment updates omit “point at #1707”
+
+Non-scope: comments that cite `SQLResultTableView.swift` **or describe that card as the live iOS behavior** must describe Android’s own card **and point at #1707**, including `Transcript.kt`, `TranscriptTest.kt`, `ExecutionFeedbackTest.kt`, `TableReadingOrderTest.kt`, `TranscriptCardViews.kt`.
+
+Impact: “Update comments that name the deleted Swift file so they describe Android’s own card.” Grep of `SQLResultTableView.swift` hits those five files (eight comments), including `Transcript.kt` 9 and 178, `TranscriptCardViews.kt` 65 / 247 / 604, `TranscriptTest.kt` 13, `TableReadingOrderTest.kt` 35, `ExecutionFeedbackTest.kt` 406 (`SQLResultTableView.swift:100` is the `copyToPasteboard` line). The #1707 pointer is missing. Comments that describe live iOS card behavior without the filename are also out of the stated grep.
+
+### M8. Impact lists `Markdown.kt` as a change row
+
+`android/core/src/main/kotlin/com/openmausbot/companion/core/Markdown.kt` exists and is a parallel parser. It does not name `SQLResultTableView.swift`. Grouping it under comment rewrites sends the implementer to the wrong file. The freeze (“no Kotlin behavior change”) is right; the grouping is not.
+
+### M9. “Strip a checkbox marker including its `x` or `X`”
+
+Acceptance 11: cell `x` is spoken; checkbox tokens are not. A stripper that removes the letter `x` deletes `x, stays` from the first exact string. The exact Walkie test would catch it; the sentence invites the over-strip. Strip the token `[x]` / `[X]` / `[ ]` only.
+
+### M10. Impact omits fixtures and UI surfaces that actually change
+
+Tests correctly name `ThreadPreview.json`. Impact’s table does not. Also absent: `MessageRow` for `message-<id>`, `Localizable.xcstrings`, and the new UI test. `ios/Tests/CompanionCoreTests/Fixtures` staying frozen is correct and distinct from `ios/App/ThreadPreview.json`. `ThreadPreviewPages.json` has no `preview-gmail` key; leaving it alone is right.
+
+### M11. `ImagePreview.json` freeze is unstated
+
+Acceptance 14: do not edit `ImagePreview.json`. That file repeats `preview-gmail-user` → `preview-gmail-reply` (`ImagePreview.json` 82–90). Design only names `ThreadPreview.json`. An implementer who mirrors the chain into the images fixture violates the lock and can break `GeneratedImageUITests`.
+
+---
+
+## Low
+
+### L1. `MarkdownText.view` vs `view(for:)`
+
+Drawing says `MarkdownText.view`. The method is `view(for:tail:)` (`MarkdownText.swift` 47). Impact uses `view(for:)`. Same switch.
+
+### L2. Divider spanning in the Grid
+
+A `Divider()` as a `GridRow` occupies one column unless it uses `gridCellColumns`. Visual only; column-width sharing can still hold.
+
+### L3. Body row definition `contains "|"`
+
+A following prose line that happens to include a pipe is still a body row. Acceptance 6’s terminators (`After`, `- [x] done`) have no pipe. Residual.
+
+### L4. Current-status bullet stays
+
+“Markdown rendering and Keychain storage…” (`docs/ios-companion.md` 28) remains true and overlaps the new section. Harmless.
+
+### L5. Copy / Select Text and rooms
+
+Non-scope: Copy and Select Text keep `attachedContent.text`. Rooms use the same `TextBubble` (`ChatView.swift` 1429, 1442, 1455). Neither appears under Not affected. `parsedTable` deletion in `TextBubble` already covers rooms. `MessageRow`’s Copy/Select is unchanged if nobody edits it.
+
+### L6. Walkie length cap
+
+Acceptance 11: existing cap unchanged; both samples sit under it. `speakable` still defaults to 600 (`Walkie.swift` 45); `WalkieView` passes 400. Design never restates the cap. Fine if `truncated` is untouched.
+
+### L7. Weld when the next line *is* a delimiter
+
+Acceptance 6 only defines when a weld runs. The design does not say whether a welded-looking line plus a following delimiter then takes the header-plus-delimiter path (one wide header). Sample 2 uses blank lines to avoid that. Residual.
+
+### L8. Unclosed fence in the line-scan Walkie path
+
+Parser: an open fence runs to the end (`Markdown.swift` 65–79). Current `speakable` replaces `(?s)```.*?```` (`Walkie.swift` 46), which misses an unclosed fence. Acceptance 11’s samples are closed. Residual if speakable stays a line scan.
+
+### L9. Mutation row for `.task` is weaker than acceptance 13
+
+Design: “New task assertion fails.” Acceptance 13: the `+ [X]` row **and** the nested row. A single `[x]` assertion can stay green while `+` / nest stay `.bullet`.
+
+### L10. Four-space / tab rows still go through `paragraph.append(trimmed)`
+
+Leading spaces are already dropped for every paragraph (`Markdown.swift` 113). Pipes remain visible, which is what acceptance 6 requires. Residual that “source text” includes the indent characters.
+
+### L11. Header-only drawing
+
+In-scope: header plus delimiter with no body. `rows: []` fits the invariant. Drawing always describes “header, a divider, then body rows” and never the empty-body case.
+
+---
+
+## What already matches
+
+- Block model: `alignments.count == headers.count`; short rows pad `""`; multiline extra cells widen the header; welded leftovers wrap before the struct exists; delimiter is not stored; `.task(indent:number:checked:text:)`.
+- Detection order: fence, blank, rule, heading, quote, then table, then list. `---` with no pipe stays a rule. Delimiter cells `^:?-+:?$`, one hyphen, at least one `|` on the delimiter line. Outer empty edge cells dropped. `\|` vs other backslashes matches `TextBubble.tableCells` (`ChatView.swift` 1533–1561). Odd unescaped backticks stay a paragraph. Interrupt a paragraph without a blank line (acceptance 1).
+- Tasks: `[ ]` / `[x]` / `[X]` plus whitespace or whole remainder; `- [x]no-space` stays `.bullet`; `[  ]` / `[ x ]` rejected; indent `min(leading / 2, 4)`.
+- Chat bubble: delete `parsedTable`, `tableCells`, `isTableSeparator`, `SQLResultTableView.swift`; `customCard` only for `parsedDiff`. The only iOS call site is `ChatView.swift` 1598. User messages stay `Text`.
+- Walkie contract: join cells with `", "`; drop all-delimiter lines even as paragraphs; sample 2’s blank lines keep the weld and keep delimiter-shaped lines from pairing; fences still become “Code omitted.”
+- Exhaustive switches: only `MarkdownText.swift` `view(for:)` and `MarkdownTests.text` (`MarkdownTests.swift` 187–195).
+- Not affected: `rosterPreview` returns raw `message.text` (`ChatPreferences.swift` 152–154); widgets have no `Markdown` import; CompanionCore fixtures vs `ThreadPreview.json` are correctly split.
+- Master section has no issue number and no history. Replace the “wherever it sits” sentence (H9) and it can ship as current tense.
+
+---
+
+## Residual if the Highs are fixed
+
+Walkie exact strings, the block invariant, SQL card deletion, and Android behavior freeze are in good shape. After H1–H9, leftover risk is M1 (pick one speakable path and keep the delimiter-paragraph drop), M9 (strip tokens, keep cell `x`), and L3 (a pipe in trailing prose). Those can be closed in the implementation PR.
+
+
+### #1706 shuhei-suzuki [2026-09-23T08:36:59Z]
+## Design updated after round 1
+
+All three design reviews requested changes. Critical was 0/3. I checked the cited call sites and edited `docs/design/issue-1706-design.md`.
+
+- Walkie calls `Markdown.blocks`. A welded line is spoken as table rows. Delimiter-only paragraphs are dropped. The impact section no longer says speech has its own weld.
+- The ordered number stays its own element. The checkbox and words are one non-button element. Labels use the rendered text. Portuguese strings are `concluído` and `não concluído` in `Localizable.xcstrings`.
+- The UI test is added to `ThreadNavigationUITests` and launches with `-store-preview -threads-preview`. `MessageRow` is the `message-<id>` container with children contained, not combined. The first table's scroll view gets `message-<id>-scroll`. Cells use the column width and do not wrap.
+- A line that ends a table is left for the outer loop. List context is the marker indent of the latest item, cleared by a blank line. A delimiter row needs at least one cell.
+- The streaming check is equality after dropping structure by position. It does not ignore every `-`. The mutation table has the seven required rows.
+- The master sentence limits tables to the top level. It does not claim closed-app voice.
+- Android comment edits name the five files and point at #1707. `Markdown.kt` is not edited. `ImagePreview.json` is not edited.
+
+Design round 2 reviews this text.
+
+
+### #1706 shuhei-suzuki [2026-09-23T09:06:34Z]
+### 🔍 [Claude/opus-5.5-xhigh] 設計レビュー（2巡目）
+
+### 🔍 Design review
+
+**Verdict: request changes.** 0 Critical, 1 High, 6 Medium, 9 Low.
+
+Most round 1 fixes are really in the design. But switching Walkie to `Markdown.blocks` opened a new High hole, and the new "a blank line clears the list" rule contradicts both the requirement and the new master text.
+
+**Round 1 items, checked against the files:**
+
+| Round 1 item | Status | Evidence |
+|---|---|---|
+| Walkie calls `Markdown.blocks`, no second weld; welded line spoken as `A, B. 1, 2.` | Fixed | design:167-168. I traced sample 2 through the weld rules and the desktop `splitInlineTable` (`src/lib/markdown-tables.ts:48-88`): it gives `A, B. 1, 2. … delimiter row.` exactly. It opens H1. |
+| Ordered `1.` is its own element, separate from the task label | Fixed | design:142-144 |
+| UI test flags, class, `MessageRow` identifier, scroll identifier | Fixed | design:128-131, 210, 259-264. The helper at `ThreadNavigationUITests.swift:231-237` already passes `-store-preview -threads-preview`. The CI script `scripts/verify-ios-thread-navigation-ci.sh` runs the whole class (`-only-testing:…/ThreadNavigationUITests`) on both iPhone and iPad. |
+| Streaming check doesn't ignore every hyphen; seven mutations listed | Partly fixed | The mutation table is at design:247-257. The hyphen sentence is vacuous (M4). |
+| A line that ends a table is not consumed; list context defined | Fixed for the header-plus-delimiter step | design:78-80 and 40-48. The "blank line clears it" rule creates M1. |
+| Master text no longer says "a table wherever it sits" | Fixed | design:193-197. M1 makes one sentence false; M5 is a new contradiction. |
+| Android comments name five real files and point at #1707; `ImagePreview.json` untouched | Fixed | All five files really cite `SQLResultTableView.swift`, and design:215 and 261 keep `ImagePreview.json` out. The class of comments is narrower than the requirement (M6). |
+
+---
+
+#### Critical
+
+None.
+
+#### High
+
+**H1. Walkie can only drop delimiter paragraphs, but the requirement says delimiter lines. A paragraph block has already lost its line breaks.**
+- **Where:** requirement 250-251 says "Speech still drops a *line* whose cells are all delimiter cells, even when that line is only a paragraph." Design 170 says "A *paragraph* whose cells are all delimiter cells is dropped."
+- **Why it can't be met as designed:** `flushParagraph` joins lines with a space (`Markdown.swift:45`). Walkie gets `.paragraph(String)` and cannot see where a delimiter line started.
+- **Failing inputs:** these are the requirement's own acceptance 6 inputs, which stay text:
+  - The list case, `- intro\n  | A | B |\n  | --- | --- |\n  | 1 | 2 |`, becomes a bullet plus the paragraph `| A | B | | --- | --- | | 1 | 2 |`. Walkie says `A, B, , ---, ---, , 1, 2.`
+  - The four-space table and `Some prose\n| --- | --- |` do the same.
+- **Also missing:** the design only defines how a paragraph or table that contains `|` is spoken. Today every `|` becomes `", "` (`Walkie.swift:57`). Under the design, a bullet `- a | b`, a quote `> | --- | --- |`, a heading, or a task containing `|` is unspecified, and the pipe may now be spoken aloud.
+- **Also:** "all delimiter cells" does not require a `|`, so a bare `--` paragraph would be dropped. Today it is spoken.
+- **Fix:** either change the requirement to paragraph level and accept the spoken dashes for nested, quoted, and indented tables, or specify how line level works. For example, give paragraph blocks their source lines for Walkie, and apply the cell and delimiter rule to every block that carries text.
+
+#### Medium
+
+**M1. "A blank line clears it" (design:43) turns a table under a list item into a real table when there is a blank line between them.**
+- **Input:** `1. Compare\n\n   | A | B |\n   | --- | --- |\n   | 1 | 2 |`. The blank line clears the list memory. The next line is indented 3 spaces, so it counts as top-level and becomes a table.
+- **Why that's wrong:** in GFM this table is nested in the list item. Requirement 43-46 says a table nested in a list item stays text. The new master sentence (design:194, "A table inside a list item … stays text") would be false.
+- **Test gap:** acceptance 6 and the design's tests (design:238) only cover the version without a blank line, so nothing pins this case either way.
+- **Fix:** either keep the marker indent across blank lines, and close it only on a non-blank line that is not indented more than the marker, or accept the table and amend the requirement and the master text. Add a test for whichever you choose.
+
+**M2. Switching Walkie to blocks changes speech beyond tables and tasks, and the Impact table doesn't say so.**
+- **Where:** the Impact row at design:214 only says "Spoken tables and tasks".
+- **Multi-line paragraphs:** today each source line gets its own `.` (`Walkie.swift:61`). Soft breaks are now joined, so `Status: done\nNext: deploy` becomes `Status: done Next: deploy.`
+- **Fences:** `~~~` fences become "Code omitted." Today's regex only matches closed backtick fences (`Walkie.swift:46`).
+- **Unclosed fences:** `settledReply` joins messages with `\n\n` (`Walkie.swift:23`). An unclosed fence in an earlier message now turns every later message into "Code omitted."
+- **Numbered items:** whether an ordinary numbered item (not a task) speaks its number is unspecified.
+- No existing `WalkieTests` case covers any of these.
+- **Fix:** state each outcome and lock it with a test.
+
+**M3. One mutation can't fail the test it names, and the round 1 behaviors have no mutations at all.**
+- **The row:** design:255 pairs "Leave a delimiter row … in speech" with "Acceptance 11's first string".
+- **Why it can't fail there:** in this design the delimiter row of sample 1 is never stored in the table block. Walkie's only delimiter logic is the paragraph drop (design:170), and that only runs on sample 2. Removing that drop leaves the first string green.
+- **Fix:** split the row. "Speak an all-delimiter paragraph" should fail the second string, and "speak the checkbox token" should fail the first.
+- **Missing mutations:** none of the rows cover the round 1 additions. Add at least these three:
+  - consume the line that ends a table;
+  - treat an indented pipe line under a list item as a table;
+  - make the cell splitter drop a leading `-` or `$`, to fail the streaming check.
+
+**M4. "It does not add `-` … to a character-class ignore list" (design:243) is vacuous, and the streaming check can pass by construction.**
+- **Why vacuous:** the existing `testNoPrefixOfAReplyLosesCharacters` already ignores `#->`*_` (`MarkdownTests.swift:180-181`). Adding the new sources to that test satisfies the sentence while still ignoring the hyphen of `-5%`.
+- **Why it can be tautological:** "drop only the characters consumed as structure at that position" is never tied to something other than the parser. If the expected string is derived from `Markdown.blocks` output, the check proves nothing.
+- **Fix:** require a separate test with no character-class filter, and an expected string built independently of the parser, such as a hand-written drop per source.
+
+**M5. The new master section contradicts the existing master text on voice.**
+- `docs/ios-companion.md:35` says "Closed-app push delivery, voice, and App Store release automation are not part of this version."
+- The new section says an in-app spoken form exists, and adds "Closed-app voice is unchanged", which implies a feature that doesn't exist.
+- Walkie is not described anywhere else in the docs.
+- **Fix:** reword line 35 in the same PR and drop the "closed-app voice" phrase.
+
+**M6. The design narrows which Android comments must change.**
+- **Where:** the Impact row (design:217) scopes the change to "Comments will name a deleted file". The requirement (60-66) also covers comments that "describe that card as the live iOS behavior".
+- **Lines that describe the iOS card without naming the deleted file:**
+  - `Transcript.kt:47` ("exactly as iOS builds `[columns] + rows`")
+  - `TranscriptCardViews.kt:70`, `:267`, `:368`, `:384` ("iOS asks every cell for `minWidth: 65`")
+  - `TableReadingOrderTest.kt:85` and `:160`. These are test function names ("the way iOS does", "floored at the iOS minimum"), not comments.
+  - `TranscriptTest.kt:11-12` names `parsedTable`, `tableCells`, and `isTableSeparator` in `ChatView.swift`, which is a file that still exists.
+- **Fix:** give a grep as the completion check (`SQLResultTableView|parsedTable|tableCells|isTableSeparator|csvField|minWidth: 65` plus iOS-card wording), and say that renaming test functions is allowed.
+
+#### Low
+
+**L1. Links inside task text become unreachable in VoiceOver.**
+- The task element uses "children ignored" (design:145).
+- Today `- [ ] Review [PR](url)` is a bullet whose link VoiceOver can open. As a task, the link disappears from VoiceOver.
+- Either use `.combine` with an explicit label, or accept the loss in the requirement.
+
+**L2. "So the accessibility frame is the column" (design:137-138) is stated as fact but unverified.**
+- A `.frame` on a `Text` may not widen its accessibility frame. The width checks would fail rather than pass by accident, so this is rework risk, not a false green.
+- Name a fallback, for example making the framed cell the accessibility element.
+
+**L3. The streaming rule contradicts itself for numbered items.**
+- Requirement 204-208 says to include "the ordered number" and also to drop "list markers".
+- For `1. [ ] open` or `1) [ ] open`, only `.` or `)` can be dropped, or the digits won't match.
+
+**L4. The body-row definition (design:82-84) leaves out the odd-backtick rule.**
+- design:102 says such a line "is not a table", but it's unclear whether that ends a table mid-stream.
+
+**L5. The weld step doesn't say what ends its table.**
+- "Not consumed, reparsed" (design:78-80) and "a blank line ends the table" are only stated for step 2.
+- Step 1 says a following pipe row continues the table but says nothing about what ends it.
+
+**L6. "Top-level row" for the header line is undefined.**
+- Only body rows exclude list-item lines. Table detection runs before list items, so `- a | b\n| --- | --- |` (or `- [ ] a | b` plus a delimiter row) becomes a table with header cell `- a` instead of a bullet.
+
+**L7. The caret rule differs from the requirement.**
+- The design puts the caret on "the last non-empty cell" (design:139). Requirement 16 says "the last cell".
+- While a final all-empty row is streaming, the caret would jump up into an earlier row.
+
+**L8. The fixture's `at` values are unspecified for the three new messages.**
+- A gap over 30 minutes adds a time separator (`ChatView.swift:741-744`), and values later than the reply's can change thread update order.
+- Pin them between `1789088400000` and `1789088430000`.
+
+**L9. `docs/verification/ios-threads.md` is not updated.**
+- It describes this fixture and lists the checklist steps (lines 35-66). The new Markdown checks aren't added, and the doc is not in the Impact table.
+
+**L10. The master text never mentions the one-line weld.**
+- A newcomer reading it can't tell that `| A | B | |---|---| | 1 | 2 |` renders as a table.
+
+
+### #1706 shuhei-suzuki [2026-09-23T09:06:36Z]
+### 🔍 [Codex/gpt-5.6-sol-max] 設計レビュー（2巡目）
+
+### 🔍 Design review
+
+**Verdict: Request changes**
+
+Round 1’s Walkie, ordered-task accessibility, UI fixture/class/identifiers, seven mutations, unconsumed terminator, master text, and Android-file changes are now present. The list-context correction remains incomplete, and several new sentences leave passing-condition holes.
+
+#### Critical
+
+None.
+
+#### High
+
+None.
+
+#### Medium
+
+1. **List tracking loses an open parent list.** The design remembers only the latest marker indent and closes it when indentation is not greater ([design:40](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:40)). Thus `- parent\n  - child\n  | A | B |\n  | - | - |` closes the child context at the first pipe and recognizes a two-space “top-level” table, even though it remains inside `parent`. This violates the requirement that nested tables stay text ([requirements:43](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:43)). Retain still-open parent context and add this nested-sibling case.
+
+2. **A list or task line can still become a table header.** Table-start detection runs before `listItem` ([design:56](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:56)), while only body rows explicitly reject list-item syntax ([design:82](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:82)). Consequently, `- [x] A | B\n--- | ---` qualifies as header plus delimiter instead of a task followed by text. Apply the same list-item exclusion to candidate headers and test it.
+
+3. **Column alignment can be ignored by drawing while every specified test passes.** `MarkdownTests` can prove the parsed alignment enum, but the preview assertions check row geometry, widths, scrolling, and labels—not leading/trailing/center placement ([design:233](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:233), [design:259](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:259)). Rendering every column as leading would therefore pass despite acceptance 8 ([requirements:175](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:175)). Add a drawing-level assertion or mutation that fails when `MarkdownText` ignores the parsed alignment.
+
+#### Low
+
+1. **The streaming oracle still permits non-structural loss.** The requirement permits dropping only structure ([requirements:201](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:201)), but the design additionally drops all whitespace before equality ([design:240](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:240)). A streaming-only defect that turns `Quant baskets` into `Quantbaskets` can pass this check. Normalize only whitespace transformations deliberately performed by the parser rather than blanket-removing it.
+
+2. **The caret target contradicts acceptance 16.** The design puts it on the last non-empty cell ([design:139](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/design/issue-1706-design.md:139)); the requirement says the last cell ([requirements:328](/Users/shuheisuzuki/Documents/dev/omb/worktree/issue-1706/docs/requirements/issue-1706-requirements.md:328)). These differ for the required padded short row `1 / empty`. Use the structural last cell and add a streaming check for that case.
+
+
+### #1706 shuhei-suzuki [2026-09-23T09:06:38Z]
+### 🔍 [Grok/grok-4.6-xhigh] 設計レビュー（2巡目）
+
+### 🔍 Design review
+
+**Verdict:** approve
+
+Round 1’s seven items are in the current `docs/design/issue-1706-design.md` and match `docs/requirements/issue-1706-requirements.md` plus the files those docs name. Remaining notes are Medium/Low: residual wording and wiring, including new sentences that could be misread. They do not reopen a product lock.
+
+**Round 1 recheck**
+
+| Round 1 item | Status |
+|---|---|
+| Walkie calls `Markdown.blocks` and speaks the welded line as `A, B. 1, 2.` with no second weld | Present. `Walkie.speakable` calls `Markdown.blocks` and “does not keep a second weld.” Weld lives in `Markdown.blocks` (`splitInlineTable` shape plus backtick/backslash refusal). Sample 2’s blanks keep the following delimiter-shaped lines from pairing. |
+| Ordered number `1.` is a separate accessibility element from the task label | Present. Drawing emits `"\(number)."` outside the task element; both `1.` and `1)` use that format. The checkbox image and words are one non-button element. |
+| UI test: `-store-preview -threads-preview`, `ThreadNavigationUITests`, `MessageRow`, scroll identifier | Present. Checks go in `ThreadNavigationUITests`. Launch flags match `launchPreview()` in `ios/UITests/ThreadNavigationUITests.swift`. `MessageRow` gets `accessibilityElement(children: .contain)` and `message-<id>`. `TextBubble` passes `message-<id>-scroll`. |
+| Streaming equality does not ignore every hyphen; seven mutations listed | Present. Compare after dropping structure at that position, then whitespace; do not add `-`, `:`, or `$` to a character-class ignore list. Mutation table matches acceptance 13. Residual: existing `testNoPrefixOfAReplyLosesCharacters` still uses `"#->`*_"` (Medium). |
+| Non-row terminator is not consumed; list context allows a 1–3 space top-level table and keeps a pipe line under a list item as text | Present. Marker indent, blank clears it, continuation only when leading whitespace is greater than that indent, 1–3 space table when no list is open, non-row returned to the outer loop (`After` paragraph, `- [x] done` task). |
+| Master sentence does not treat every pipe table as a table | Present. Proposed `docs/ios-companion.md` text: top-level, at most three spaces; list item, blockquote, fence, four spaces, or a tab stay text or code. No issue number. |
+| Android comments name the five real files and `#1707`; `ImagePreview.json` is untouched | Present. Named files exist and cite `SQLResultTableView.swift`: `Transcript.kt`, `TranscriptTest.kt`, `ExecutionFeedbackTest.kt`, `TableReadingOrderTest.kt`, `TranscriptCardViews.kt`. `android/.../Markdown.kt` does not cite that Swift file. `ImagePreview.json` / `ThreadPreviewPages.json` stay unedited. |
+
+Named symbols that exist: `Markdown.blocks` and `MarkdownBlock` in `ios/Sources/CompanionCore/Markdown.swift`; `Walkie.speakable` in `ios/Sources/CompanionCore/Walkie.swift`; `MarkdownText.view(for:tail:)` in `ios/App/MarkdownText.swift`; `MessageRow`, `TextBubble`, `parsedTable`, `tableCells`, `isTableSeparator`, `StreamingBubble` in `ios/App/ChatView.swift`; `FilePreviewView` in `ios/App/AttachmentViews.swift`; `SQLResultTableView` in `ios/App/Cards/SQLResultTableView.swift` (only iOS call site is `TextBubble`); `splitInlineTable` / `DELIMITER_CELL` / `repairMarkdownTables` in `src/lib/markdown-tables.ts`; `ThreadNavigationUITests.launchPreview`; `WalkieView` (400) and `WalkieController` (default 600).
+
+---
+
+### Critical
+
+None.
+
+### High
+
+None.
+
+### Medium
+
+1. **Streaming check can still reuse the hyphen-eating helper.** The new paragraph states the right rule (drop only structure consumed at that position). The follow-on “does not add `-`, `:`, or `$` to a character-class ignore list” is true of a helper that already contains `-`. `MarkdownTests.testNoPrefixOfAReplyLosesCharacters` filters with `!"#->`*_".contains($0)`. Extending that helper to the acceptance 1–9 sources and `| -5% | 12:30 | $3 | x |` would keep `-5%` green if the parser ate the hyphen as a list marker. Acceptance 10 needs a check that does not run those sources through that class.
+
+2. **Header start is weaker than body-row.** A body row “does not itself start a heading, quote, fence, rule, or list item” (`- a | b` ends a table). Table detection still runs before `listItem`, and header-plus-delimiter only requires a “top-level row” (0–3 spaces, no tab, list context). A list line that contains `|` followed by a delimiter can become a table header. Locked acceptances use `- intro` then an indented pipe block, or task lines without a following delimiter, so this is outside the lock. Same exclusion on the header start as on the body would close it.
+
+3. **Walkie paragraph “cells” omit the outer-empty drop.** Table rows drop leading/trailing empty edge cells. Walkie then drops a paragraph “whose cells are all delimiter cells,” and names `| :--- | ---: |` and `| - | - |`. A raw `split("|")` on those lines leaves empty edge cells; `""` does not match `^:?-+:?$`, so the drop would not fire and the lines would be spoken. `--- | ---` (no outer pipes) would still drop. `WalkieTests` exact strings would fail that misread. Tie Walkie paragraph cells to the same edge drop as table rows.
+
+4. **`Walkie.speakable` after `Markdown.blocks` does not restate the rest of today’s speech.** The new path specifies tables, delimiter-only paragraphs, pipe paragraphs, tasks, “Code omitted.”, and the 600/400 caps. Current `Walkie.speakable` still strips headings, `[-*+]` / `\d+[.)]` markers, `**` / `__` / `~~` / `` ` ``, links, and bare URLs; `WalkieTests` locks `Status. Codu passed canvas one. Maily is late done.` and the link/code cases. Speaking `block` payloads raw would fail those tests. One sentence that existing inline stripping still runs on heading, list, quote, and paragraph text would close the gap.
+
+5. **Weld continuation does not repeat “blank line ends the table.”** Header-plus-delimiter does. Weld adds “a following pipe row that is not indented under a list continues the same table.” Sample 2 is welded line, blank, `| :--- | ---: |`, blank, `| - | - |`. A continuation loop that skipped blanks would swallow those delimiter lines as body rows and break `A, B. 1, 2. …`. Immediate-next-line continuation plus the same blank-end as path 2 matches the Walkie paragraph. Repeating that blank-end on the weld path would remove the misread.
+
+### Low
+
+1. **Caret: last non-empty cell vs last cell.** Drawing puts the caret on the last non-empty cell (last cell if every cell is empty). Acceptance 16 says last cell or last task line. For a short tail `| 1 |` padded with `""`, those differ. Package tests do not draw glyphs; call it out only if the UI caret is asserted.
+
+2. **Scroll identifier is only on the first table** in a `MarkdownText`. Acceptance 14’s grid message is one table. A later table in the same bubble has no `message-<id>-scroll`.
+
+3. **Master insert point.** “Add this section after Current status” in `docs/ios-companion.md` means after that section (before Runtime architecture). There is no existing `### Markdown tables` heading in this tree.
+
+4. **File preview truncation.** `FilePreviewItem.text` in `AttachmentViews.swift` already caps at 2 MB and appends the truncated marker. Keeping `MarkdownText(source: item.text)` preserves that. The design says keep calling `MarkdownText` and skip a second splitter; it does not restate the cap.
+
+5. **UI test launch helper.** `ThreadNavigationUITests.launchPreview()` already sets `-store-preview -threads-preview`, English locale, and onboarding flags, and omits `-images-preview`. Reusing that helper is enough; a from-scratch `launchArguments` list that only copies the two flags would miss locale and onboarding.
+
+6. **`ParagraphDirectionTest.kt` still expects Android `DATA TABLE` / `Copy CSV`.** That is `DataTableCard`, not a citation of `SQLResultTableView.swift`. Leaving it alone is consistent with “Kotlin behavior does not change.”
+
+---
+
+The design is implementable against the current requirements. Next step is implementation, with the Medium items closed in code and in the tests that already name them (streaming prefixes of `-5%`, both Walkie strings, header vs list marker).
+
+

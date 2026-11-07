@@ -1,0 +1,1695 @@
+### #1126 vercel[bot] [2026-09-12T03:44:41Z]
+@Sunwood-ai-labs is attempting to deploy a commit to the **SupaMaus** Team on [Vercel](https://vercel.com).
+
+A member of the Team first needs to [authorize it](https://vercel.com/git/authorize?team=SupaMaus&slug=supa-maus&teamId=team_aqxzop12XLrDccx8zavaTkeu&type=github&job=%7B%22headInfo%22%3A%7B%22sha%22%3A%22454aa82296fed62ffcba6ae8cb028bc01eb99ad0%22%7D%2C%22id%22%3A%22QmdCe3rDmPVDhnxWibwrEfddty49Q9qvEG77p2GHd5G42S%22%2C%22org%22%3A%22milind-soni%22%2C%22prId%22%3A1126%2C%22repo%22%3A%22OpenMausBot%22%7D).
+
+
+
+### #1126 coderabbitai[bot] [2026-09-12T03:44:58Z]
+<!-- This is an auto-generated comment: summarize by coderabbit.ai -->
+<!-- review_stack_entry_start -->
+
+<a href="https://app.coderabbit.ai/change-stack/milind-soni/OpenMausBot/pull/1126#gh-light-mode-only"><img src="https://storage.googleapis.com/coderabbit_public_assets/review-stack-in-coderabbit-ui.svg" alt="Review Change Stack" width="202" height="32"></a><a href="https://app.coderabbit.ai/change-stack/milind-soni/OpenMausBot/pull/1126#gh-dark-mode-only"><img src="https://storage.googleapis.com/coderabbit_public_assets/review-stack-in-coderabbit-ui-dark.svg" alt="Review Change Stack" width="202" height="32"></a>
+
+<!-- review_stack_entry_end -->
+<!-- This is an auto-generated comment: review paused by coderabbit.ai -->
+
+> [!NOTE]
+> ## Reviews paused
+> 
+> It looks like this branch is under active development. To avoid overwhelming you with review comments due to an influx of new commits, CodeRabbit has automatically paused this review. You can configure this behavior by changing the `reviews.auto_review.auto_pause_after_reviewed_commits` setting.
+> 
+> Use the following commands to manage reviews:
+> - `@coderabbitai resume` to resume automatic reviews.
+> - `@coderabbitai review` to trigger a single review.
+> 
+> Use the checkboxes below for quick actions:
+> - [ ] <!-- {"checkboxId":"7f6cc2e2-2e4e-497a-8c31-c9e4573e93d1"} --> ▶️ Resume reviews
+> - [ ] <!-- {"checkboxId":"e9bb8d72-00e8-4f67-9cb2-caf3b22574fe"} --> 🔍 Trigger review
+
+<!-- end of auto-generated comment: review paused by coderabbit.ai -->
+<!-- recent_review_start -->
+
+No actionable comments were generated in the recent review. 🎉
+
+<details>
+<summary>ℹ️ Recent review info</summary>
+
+<details>
+<summary>⚙️ Run configuration</summary>
+
+**Configuration used**: defaults
+
+**Review profile**: CHILL
+
+**Plan**: Advanced
+
+**Run ID**: `c1be09b2-3c77-4617-9460-9bf0db31c444`
+
+</details>
+
+<details>
+<summary>📥 Commits</summary>
+
+Reviewing files that changed from the base of the PR and between af25fe760cd196ab5b9db9dd7efd587cfa8349b8 and d5735ec663bae32aca87ffe948dc118f6b582fa1.
+
+</details>
+
+<details>
+<summary>📒 Files selected for processing (3)</summary>
+
+* `server/coordination-acp.e2e.test.ts`
+* `server/guarded-messages-api.test.ts`
+* `server/independent-threads-api.test.ts`
+
+</details>
+
+<details>
+<summary>🚧 Files skipped from review as they are similar to previous changes (1)</summary>
+
+* server/coordination-acp.e2e.test.ts
+
+</details>
+
+**Included review availability:** Your plan provides up to 8 included reviews per hour; 4 remain after this review.
+
+</details>
+
+---
+
+
+
+<!-- recent_review_end -->
+<!-- walkthrough_start -->
+
+<details>
+<summary>📝 Walkthrough</summary>
+
+## Walkthrough
+
+This pull request adds room routing, optional member discussions, coordination verification scripts, IPC launcher cleanup, shared-computer controls, regression coverage, and room-hierarchy evidence.
+
+### Changes
+
+**Room coordination and verification**
+
+|Layer / File(s)|Summary|
+|---|---|
+|**Room routing, discussion, and settings** <br> `server/index.ts`, `server/room-handoffs.ts`, `server/drivers/agents-proxy.ts`, `scripts/mcp-server.ts`, `src/components/GroupView.tsx`, `src/state/store.tsx`, `shared/wire.ts`|Rooms support incoming-group restrictions and required discussions. Discussion nodes validate participants, collect opinions, and charge execution budget per participant.|
+|**Verification scripts and coordination coverage** <br> `scripts/verify-room-discussion.ts`, `scripts/verify-room-handoffs.ts`, `scripts/verify-room-pyramid.ts`, `server/*handoffs*.test.ts`, `server/coordination-acp.e2e.test.ts`, `server/legacy-thread-tools.e2e.test.ts`|Adds scripted and live verification flows and coverage for routing, discussion ordering, permissions, queueing, failures, ACP coordination, and legacy thread boundaries.|
+|**Launcher cleanup and shared-computer controls** <br> `scripts/control-omb.ts`, `server/testing/cleanup.ts`, `scripts/testing/*`, `electron/shared-computer-access.*`, `server/shared-computers.e2e.test.ts`|Launchers accept IPC stop requests and disconnect cleanup. Tests wait for process exit. Shared-computer tests cover environment filtering, feature revocation, command termination, and transport diagnostics.|
+|**Verification evidence and documentation** <br> `docs/verification/*`, `docs/verification/evidence/room-hierarchy/*`|Adds workflow documentation, migration notes, UI snapshots, transcripts, provider events, CSV checks, acceptance limitations, and checksum manifests.|
+
+<!-- change_assessment_start -->
+**Priority:** ➖ Normal
+
+
+
+
+
+
+
+
+
+
+
+
+
+**Estimated code review effort:** 5 (Critical) | ~120 minutes
+
+<!-- change_assessment_commit:"d5735ec663bae32aca87ffe948dc118f6b582fa1" -->
+**Change:** Feature
+<!-- change_assessment_end -->
+
+**Possibly related PRs**
+
+- [milind-soni/OpenMausBot#1136](https://github.com/milind-soni/OpenMausBot/pull/1136): Provides the room-handoff foundation extended here with discussion nodes and incoming-group restrictions.
+- [milind-soni/OpenMausBot#1153](https://github.com/milind-soni/OpenMausBot/pull/1153): Adds related team-access and cross-team coordination rules used by these room workflows.
+- [milind-soni/OpenMausBot#1166](https://github.com/milind-soni/OpenMausBot/pull/1166): Defines the coordination and `start_thread` capability boundary reflected in the migration documentation and tests.
+
+</details>
+
+<!-- walkthrough_end -->
+<!-- pre_merge_checks_walkthrough_start -->
+
+<details>
+<summary>🚥 Pre-merge checks | ✅ 4 | ❌ 1</summary>
+
+### ❌ Failed checks (1 warning)
+
+|     Check name     | Status     | Explanation                                                                                                                                                                                  | Resolution                                                                         |
+| :----------------: | :--------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------- |
+| Docstring Coverage | ⚠️ Warning | Docstring coverage is 47.83% which is insufficient. The required threshold is 80.00%. Docstring coverage is scoped to functions touched by this diff. Analyzed 23 functions across 46 files. | Write docstrings for the functions missing them to satisfy the coverage threshold. |
+
+<details>
+<summary>✅ Passed checks (4 passed)</summary>
+
+|         Check name         | Status   | Explanation                                                                                                                                                                                               |
+| :------------------------: | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     Linked Issues check    | ✅ Passed | Check skipped because no linked issues were found for this pull request.                                                                                                                                  |
+| Out of Scope Changes check | ✅ Passed | Check skipped because no linked issues were found for this pull request.                                                                                                                                  |
+|         Title check        | ✅ Passed | The title clearly summarizes the primary change: optional group discussion integrated with coordination.                                                                                                  |
+|      Description check     | ✅ Passed | The description is comprehensive and covers the changes, rationale, verification, screenshots, CI status, limitations, and references. It does not use every template heading and omits the explicit che… |
+
+</details>
+
+</details>
+
+<!-- pre_merge_checks_walkthrough_end -->
+<!-- finishing_touch_checkbox_start -->
+
+<details>
+<summary>✨ Finishing Touches 💡 1</summary>
+
+<!-- finishing_touch_suggestion:fix_ci -->
+<details open>
+<summary>🛠️ Fix failing CI checks 💡</summary>
+
+- [ ] <!-- {"checkboxId": "9f0d24fb-b419-4f01-baf0-8b26b6424f34", "radioGroupId": "fix-ci-output-choice-group-5750801374"} --> Commit to this branch
+- [ ] <!-- {"checkboxId": "6d21cfe8-ec3f-40e2-9222-b8318b64d3b0", "radioGroupId": "fix-ci-output-choice-group-5750801374"} --> Create a new PR
+
+</details>
+<details open>
+<summary>🧪 Generate unit tests (beta)</summary>
+
+- [ ] <!-- {"checkboxId": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "radioGroupId": "utg-output-choice-group-5750801374"} --> Create a new PR
+
+</details>
+
+</details>
+
+<!-- finishing_touch_checkbox_end -->
+<!-- tips_start -->
+
+---
+
+Thanks for using [CodeRabbit](https://coderabbit.ai?utm_source=oss&utm_medium=github&utm_campaign=milind-soni/OpenMausBot&utm_content=1126)! It's free for OSS, and your support helps us grow. If you like it, consider giving us a shout-out.
+
+<details>
+<summary>❤️ Share</summary>
+
+- [X](https://twitter.com/intent/tweet?text=I%20just%20used%20%40coderabbitai%20for%20my%20code%20review%2C%20and%20it%27s%20fantastic%21%20It%27s%20free%20for%20OSS%20and%20offers%20a%20free%20trial%20for%20the%20proprietary%20code.%20Check%20it%20out%3A&url=https%3A//coderabbit.ai)
+- [Mastodon](https://mastodon.social/share?text=I%20just%20used%20%40coderabbitai%20for%20my%20code%20review%2C%20and%20it%27s%20fantastic%21%20It%27s%20free%20for%20OSS%20and%20offers%20a%20free%20trial%20for%20the%20proprietary%20code.%20Check%20it%20out%3A%20https%3A%2F%2Fcoderabbit.ai)
+- [Reddit](https://www.reddit.com/submit?title=Great%20tool%20for%20code%20review%20-%20CodeRabbit&text=I%20just%20used%20CodeRabbit%20for%20my%20code%20review%2C%20and%20it%27s%20fantastic%21%20It%27s%20free%20for%20OSS%20and%20offers%20a%20free%20trial%20for%20proprietary%20code.%20Check%20it%20out%3A%20https%3A//coderabbit.ai)
+- [LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcoderabbit.ai&mini=true&title=Great%20tool%20for%20code%20review%20-%20CodeRabbit&summary=I%20just%20used%20CodeRabbit%20for%20my%20code%20review%2C%20and%20it%27s%20fantastic%21%20It%27s%20free%20for%20OSS%20and%20offers%20a%20free%20trial%20for%20proprietary%20code)
+
+</details>
+
+
+<sub>Comment `@coderabbitai help` to get the list of available commands.</sub>
+
+<!-- tips_end -->
+
+### #1126 Sunwood-ai-labs [2026-09-12T09:48:44Z]
+Investigated the macOS cancellation on `1c355507` (run 34677856572). GitHub's annotation confirms the **15-minute job timeout**, not a newer-push cancellation. `pnpm test` passed, but the deadline interrupted `check:electron` and skipped the three subsequent native smoke checks.
+
+Fixed in `ab71b750`: give macOS 20 minutes for the complete job; keep Windows at 25 minutes, Linux at 15 minutes, every check, and each individual test timeout. YAML parsing and structural comparison verified that the job budget is the only workflow change. The direct job-rerun API required upstream administrative rights (403), so this substantive fix was validated by the normal PR CI.
+
+**New run [34685863858](https://github.com/milind-soni/OpenMausBot/actions/runs/34685863858): all 10 CI jobs passed**, including macOS (14m37s), Linux and Windows. macOS passed 6,088 Vitest tests and all downstream checks, including native approval mode, guarded display capture and paired-phone authorization. CodeRabbit is successful with no unresolved threads. Vercel remains a separate upstream-team deployment authorization requirement.
+
+
+### #1126 Sunwood-ai-labs [2026-09-13T03:31:19Z]
+@coderabbitai full review
+
+Please re-review the complete PR at `ab71b750` and reconcile the main summary's "evidence reproducibility and handoff-boundary issues remain" statement with the eleven resolved review threads. The latest incremental review covered only the CI timeout change.
+
+I have checked current code against every previous finding. The original evidence-schema finding was withdrawn in discussion_r3995203845, section/roster isolation was confirmed fixed in discussion_r3995201426, and the four-edge boundary was withdrawn in discussion_r3995236851. Both live evidence checkers reproduce their recorded outputs today, and all 32 SHA-256 entries (16 per live-run directory) match. The latest evidence correctly retains `passesFinalColumnContract: false` for the seven-column draft versus the eight-column final decision; this remains an explicitly documented artifact-acceptance limitation, not a successful acceptance claim.
+
+Please identify a concrete current file/line and reproduction for any remaining evidence or handoff-boundary defect, or update the stale risk summary accordingly. Also clarify the Docstring Coverage warning: its aggregate percentage does not identify the affected functions. Avoid inferring acceptance of the generated CSV from successful workflow execution.
+
+
+### #1126 coderabbitai[bot] [2026-09-13T03:33:15Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:718e80fb89ac526e36fed8459cbf304c91a24a9caf77102eed629f608cdc5236 -->
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+echo '== PR metadata and checks =='
+gh pr view 1126 --repo milind-soni/OpenMausBot --json headRefOid,baseRefOid,statusCheckRollup,reviewDecision,url 2>&1 || true
+
+echo '== Changed files at ab71b750 relative to PR base =='
+base="$(gh pr view 1126 --repo milind-soni/OpenMausBot --json baseRefOid --jq .baseRefOid)"
+git diff --name-status "$base"..HEAD
+echo '== Diff stat =='
+git diff --stat "$base"..HEAD
+
+echo '== Room-handoff module outline =='
+ast-grep outline server/room-handoffs.ts --items all --type class,function,method --view expanded
+
+echo '== Server index relevant symbols =='
+ast-grep outline server/index.ts --items all --type function --match 'roomHandoffProblem|runGroupMemberTurn|room.*Handoff|sendRoom|discussRoom|assignRoom|roomTargets' --view expanded
+
+echo '== Section and roster enforcement references =='
+rg -n -C 5 --type ts 'roomHandoffProblem|sectionKey|peerAllowed|incomingGroupIds|roomHandoffs\.nodes\.has|roomHandoffId' server/index.ts server/room-handoffs.ts server/peer-roster.ts
+
+echo '== Handoff limit implementation and tests =='
+rg -n -C 5 --type ts 'ROOM_HANDOFF_LIMITS|path\(parent|depth|four|4' server/room-handoffs.ts server/room-handoffs.test.ts server/room-handoffs-lifecycle.e2e.test.ts
+
+echo '== Evidence artifacts and SHA manifests =='
+for manifest in \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12/sha256.txt \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12/sha256.txt \
+  docs/verification/evidence/room-hierarchy/sha256.txt
+do
+  echo "-- $manifest"
+  if [ -f "$manifest" ]; then
+    (cd "$(dirname "$manifest")" && sha256sum -c "$(basename "$manifest")") || true
+  fi
+done
+
+echo '== Evidence checker source and recorded acceptance flags =='
+for f in \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12/check_csv.py \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12/check_csv.py \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12/csv-checks.json \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12/csv-checks.json
+do
+  echo "-- $f"
+  nl -ba "$f" | sed -n '1,180p'
+done
+
+echo '== Current CI timeout change =='
+nl -ba .github/workflows/ci.yml | sed -n '1,180p'
+git diff "$base"..HEAD -- .github/workflows/ci.yml
+
+echo '== Docstring Coverage check details =='
+gh pr checks 1126 --repo milind-soni/OpenMausBot 2>&1 || true
+gh api "repos/milind-soni/OpenMausBot/commits/ab71b750/check-runs" --paginate --jq '.check_runs[] | select(.name | test("Docstring"; "i")) | {name,status,conclusion,details_url,output}' 2>&1 || true
+```
+
+Length of output: 116947
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+echo '== Whitespace errors =='
+base="$(gh pr view 1126 --repo milind-soni/OpenMausBot --json baseRefOid --jq .baseRefOid)"
+git diff --check "$base"..HEAD
+
+echo '== Core room-handoff implementation =='
+nl -ba server/room-handoffs.ts | sed -n '1,240p'
+
+echo '== Lifecycle test fixture and complete test definitions =='
+nl -ba server/room-handoffs-lifecycle.e2e.test.ts | sed -n '1,240p'
+
+echo '== Agents MCP proxy tool schemas, exposure gates, and request handlers =='
+ast-grep outline server/drivers/agents-proxy.ts --items all --type function,variable --view expanded
+rg -n -C 8 --type ts 'const TOOLS|AVAILABLE_TOOLS|function callTool|async function callTool|send_room_message|discuss_room|assign_room_member|list_room_targets' server/drivers/agents-proxy.ts
+
+echo '== Verification-script structure =='
+for f in scripts/verify-room-handoffs.ts scripts/verify-room-discussion.ts scripts/verify-room-pyramid.ts server/testing/room-handoff-agent.ts; do
+  echo "-- $f"
+  ast-grep outline "$f" --items all --type function --view expanded
+  nl -ba "$f" | sed -n '1,260p'
+done
+
+echo '== UI and state changes =='
+ast-grep outline src/components/GroupView.tsx --items all --type function --match 'Transcript|GroupView' --view expanded
+rg -n -C 8 --type tsx 'roomActivityVisible|incomingGroupIds|requireRoomDiscussion|patchGroup' src/components/GroupView.tsx src/state/store.tsx
+
+echo '== Documentation claims about artifact limitations =='
+rg -n -C 3 'acceptance|CSV|reproduc|hash|SHA|limitation|not a bot-created|seven|eight' \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12/README.md \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12/README.md \
+  docs/verification/room-handoffs.md docs/verification/room-pyramid.md
+
+echo '== PR review threads and CodeRabbit comments =='
+gh api graphql -F owner='milind-soni' -F name='OpenMausBot' -F number=1126 -f query='
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          isOutdated
+          path
+          line
+          comments(first: 20) { nodes { author { login } body url } }
+        }
+      }
+      reviews(first: 100) { nodes { author { login } state body submittedAt } }
+    }
+  }
+}' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(any(.comments.nodes[]; .author.login == "coderabbitai")) | {isResolved,isOutdated,path,line,comments: [.comments.nodes[] | {author: .author.login, body, url}]}' 2>&1 || true
+
+echo '== Search for Docstring Coverage references in repository and PR review output =='
+rg -n -i -C 3 'docstring coverage|docstring' .github docs README.md 2>/dev/null || true
+gh pr view 1126 --repo milind-soni/OpenMausBot --comments 2>&1 | rg -n -i -C 4 'docstring|coverage' || true
+```
+
+Length of output: 78405
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+echo '== GroupView selected implementation =='
+nl -ba src/components/GroupView.tsx | sed -n '360,490p'
+nl -ba src/components/GroupView.tsx | sed -n '880,1080p'
+echo '== Client group type and PATCH action =='
+rg -n -C 6 'interface Group|incomingGroupIds|requireRoomDiscussion|case "patchGroup"|patchGroup' src/state/store.tsx
+
+echo '== Documentation evidence and limitation statements =='
+for f in \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12/README.md \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12/README.md \
+  docs/verification/room-handoffs.md \
+  docs/verification/room-pyramid.md
+do
+  echo "-- $f"
+  nl -ba "$f" | sed -n '1,180p'
+done
+
+echo '== All CodeRabbit-authored review threads =='
+gh api graphql -F owner='milind-soni' -F name='OpenMausBot' -F number=1126 -f query='
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          isOutdated
+          path
+          line
+          comments(first: 20) { nodes { author { login } body url } }
+        }
+      }
+    }
+  }
+}' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(any(.comments.nodes[]; .author.login == "coderabbitai")) | {isResolved,isOutdated,path,line,comments: [.comments.nodes[] | {author: .author.login, body, url}]}' || true
+
+echo '== Docstring Coverage sources =='
+rg -n -i -C 4 'docstring|coverage' .github docs README.md package.json pnpm-lock.yaml 2>/dev/null || true
+echo '== PR comments containing Docstring Coverage =='
+gh pr view 1126 --repo milind-soni/OpenMausBot --comments 2>&1 | rg -n -i -C 5 'docstring|coverage' || true
+echo '== Check runs whose name or text contains docstring =='
+gh api 'repos/milind-soni/OpenMausBot/commits/ab71b750c046e754e68f3f2eb7ba2de0f0f13dd7/check-runs?per_page=100' \
+  --jq '.check_runs[] | select((.name + " " + (.output.title // "") + " " + (.output.summary // "")) | test("docstring"; "i")) | {name,conclusion,details_url,output}' || true
+
+echo '== Room orchestration source lifecycle call sites =='
+rg -n -C 8 --type ts 'sourceSettled\(|roomHandoffs\.tick\(|cancelRoom\(|runRoomHandoff|roomHandoffs\.enqueue' server/index.ts
+
+echo '== Changed test file outlines =='
+for f in server/room-handoffs.test.ts server/room-handoffs.e2e.test.ts server/room-discussion.e2e.test.ts server/room-pyramid.e2e.test.ts server/mcp-server.test.ts server/control-omb.test.ts; do
+  echo "-- $f"
+  ast-grep outline "$f" --items all --type function --view expanded
+done
+```
+
+Length of output: 148274
+
+---
+
+</details>
+
+`@Sunwood-ai-labs`, I completed the full re-review at `ab71b750`.
+
+I found no current evidence reproducibility defect or handoff-boundary defect.
+
+- `server/index.ts` Lines 5859-5886 validate the sender, recipient, and every member of both room rosters against the section boundary. This includes silent readers.
+- `server/index.ts` Lines 6704-6712 retain both chained-mention guards. They cover dispatched handoff turns and the initiating turn after it creates its root handoff node.
+- `server/room-handoffs.ts` Lines 103-107 correctly allow four cross-room edges. The path includes the root work node. The fifth edge is rejected.
+- Both live evidence manifests passed checksum verification: 16 entries in each live-run directory.
+- The review-live checker explicitly asserts `passesFinalColumnContract: false` at Lines 33-46. The evidence documents the seven-column draft as a failed final eight-column acceptance case. It does not claim CSV acceptance from workflow completion.
+
+The main risk summary is stale. Replace:
+
+> “unresolved evidence reproducibility and handoff-boundary issues remain”
+
+with:
+
+> “The prior evidence reproducibility and handoff-boundary findings are resolved or withdrawn. The recorded live evidence retains explicit artifact-acceptance limitations, including the seven-column draft failing the later eight-column contract. Workflow completion does not certify artifact acceptance.”
+
+The Docstring Coverage warning is not actionable as published. It reports only aggregate data: 13 functions across 24 files, one unsupported item skipped, 30.77% coverage, and an 80% threshold. It does not identify the affected functions or paths. No GitHub check run or repository configuration in this review exposes that missing detail. The analyzer must emit per-function results before maintainers can add targeted docstrings.
+
+I also used the prior review context for the room-roster, edge-depth, chained-mention, and separate-evidence-schema checks.
+
+🐇🔍
+
+
+
+---
+
+<details>
+<summary>🧠 Learnings used</summary>
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/index.ts:6708-6708
+Timestamp: 2026-09-12T05:19:23.119Z
+Learning: In `server/index.ts`, the chained-mention guard in `runGroupMemberTurn` for room handoffs requires two separate checks: `!orchestration?.roomHandoffId` blocks a dispatched child room-handoff turn from following `mentions`, and `!roomHandoffs.nodes.has(internalGeneration)` blocks a root/initiating turn (which has no `roomHandoffId` but whose `internalCapability.generation` becomes a `RoomHandoff` node key when it calls `roomHandoffs.enqueue`) from following mentions after it sends its first room request. Both checks are needed together; neither alone covers both cases.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/room-handoffs.ts:107-107
+Timestamp: 2026-09-12T05:18:52.807Z
+Learning: In `server/room-handoffs.ts`, `RoomHandoffs.path(parent)` includes the root source node, which has `kind: "work"`. `ROOM_HANDOFF_LIMITS.depth` limits cross-room edges, not total work nodes. The `path.filter(n => n.kind === "work").length > ROOM_HANDOFF_LIMITS.depth` check correctly permits four cross-room edges and rejects a fifth.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: docs/verification/evidence/room-hierarchy/live-2026-09-12/check_csv.py:7-7
+Timestamp: 2026-09-12T05:08:51.156Z
+Learning: The verification artifacts under `docs/verification/evidence/room-hierarchy/` and `docs/verification/evidence/room-hierarchy/live-2026-09-12/` are separate datasets with different transcript schemas. In the live artifact, `check_csv.py` correctly selects the CSV message through `message.from.name`; do not infer its schema from the parent scripted `transcripts.json`.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/index.ts:5884-5885
+Timestamp: 2026-09-12T05:08:31.140Z
+Learning: In `server/index.ts`, room handoff authorization (`roomHandoffProblem`, used by send-room-message, discuss-room, and assign-room-member internal endpoints) must enforce section boundaries across the entire room roster on both source and destination groups, not just the direct sender/recipient pair. `peerAllowed` (in `server/peer-roster.ts`) checks only the sender's `peers` allow-list and does not enforce `section`; section checks must use `sectionKey` comparisons separately, matching the boundary already enforced by `ask_bot` and `delegate_bot`. Opting a group into an incoming route (`incomingGroupIds`) must not override section isolation.
+```
+
+</details>
+
+<details>
+<summary>✅ Action performed</summary>
+
+Full review finished.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T03:34:10Z]
+@coderabbitai summary
+
+Please regenerate the main summary using your full re-review conclusion in https://github.com/milind-soni/OpenMausBot/pull/1126#issuecomment-5650812278: the old evidence reproducibility and handoff-boundary findings are resolved or withdrawn. Preserve the explicitly documented artifact-acceptance limitation (seven actual CSV columns versus eight required; `passesFinalColumnContract: false`). The existing aggregate-only Docstring Coverage warning provides no affected function/path, so no unrelated docstring or configuration changes have been made to chase its percentage.
+
+Independent audit at unchanged head `ab71b750`, 2026-09-13:
+
+- All eleven original review threads were compared with current code and reviewer replies, rather than relying only on their resolved flags.
+- `pnpm exec vitest run server/room-handoffs.test.ts server/mcp-server.test.ts server/drivers/agents-proxy.test.ts server/room-handoffs.e2e.test.ts server/room-discussion.e2e.test.ts server/room-pyramid.e2e.test.ts server/room-handoffs-lifecycle.e2e.test.ts --pool=threads --maxWorkers=1`: **7 suites / 134 tests passed** in 200.75 seconds. Real-server mutations used disposable homes and scripted providers. This includes the five-room, fifteen-bot discussion/assignment pyramid; it is not another live-model run.
+- Both live-run Python CSV checkers reproduced the committed outputs; all **32 SHA-256 entries** match. The working tree is unchanged.
+- CI run 34685863858 on this head remains successful (all ten CI jobs). Vercel still requires upstream-team authorization.
+
+Current integration status is separate: main now includes #1136, explicitly described as a lean alternative adapted from this PR, plus #1153. GitHub reports merge conflicts in eight files because the public coordination APIs and discussion policy differ. The successful head checks above do not validate merging this PR into that updated main. No automatic overwrite of the upstream design, PR closure, or merge was performed as part of this review audit.
+
+
+### #1126 coderabbitai[bot] [2026-09-13T03:46:24Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: f0d1a34e-42a7-4823-87ea-91169db6fe37 -->
+`@Sunwood-ai-labs`, I will regenerate the main summary with these corrections:
+
+- The previous evidence reproducibility and handoff-boundary findings are resolved or withdrawn.
+- The evidence retains an artifact-acceptance limitation. The recorded CSV has seven actual columns, while the final contract requires eight columns. `passesFinalColumnContract: false` remains correct. Workflow completion does not certify CSV acceptance.
+- The focused audit passed 7 suites and 134 tests. It used disposable homes and scripted providers. The five-room, fifteen-bot pyramid was included. This was not a live-model run.
+- Both live-run CSV checkers reproduce their committed outputs. All 32 SHA-256 manifest entries match.
+- CI run `34685863858` passed all 10 jobs. Vercel authorization remains an upstream requirement.
+- The aggregate-only Docstring Coverage warning identifies no affected function or path. No unrelated docstring or configuration changes were made to increase its percentage.
+- The successful checks apply to PR head `ab71b750`. They do not validate integration with the current `main` branch. Current `main` contains `#1136` and `#1153`, and GitHub reports conflicts in eight files due to different coordination APIs and discussion policy. No merge, closure, or upstream overwrite occurred.
+
+
+
+---
+
+<details>
+<summary>🧠 Learnings used</summary>
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/index.ts:6708-6708
+Timestamp: 2026-09-12T05:19:23.119Z
+Learning: In `server/index.ts`, the chained-mention guard in `runGroupMemberTurn` for room handoffs requires two separate checks: `!orchestration?.roomHandoffId` blocks a dispatched child room-handoff turn from following `mentions`, and `!roomHandoffs.nodes.has(internalGeneration)` blocks a root/initiating turn (which has no `roomHandoffId` but whose `internalCapability.generation` becomes a `RoomHandoff` node key when it calls `roomHandoffs.enqueue`) from following mentions after it sends its first room request. Both checks are needed together; neither alone covers both cases.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/room-handoffs.ts:107-107
+Timestamp: 2026-09-12T05:18:52.807Z
+Learning: In `server/room-handoffs.ts`, `RoomHandoffs.path(parent)` includes the root source node, which has `kind: "work"`. `ROOM_HANDOFF_LIMITS.depth` limits cross-room edges, not total work nodes. The `path.filter(n => n.kind === "work").length > ROOM_HANDOFF_LIMITS.depth` check correctly permits four cross-room edges and rejects a fifth.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: docs/verification/evidence/room-hierarchy/live-2026-09-12/check_csv.py:7-7
+Timestamp: 2026-09-12T05:08:51.156Z
+Learning: The verification artifacts under `docs/verification/evidence/room-hierarchy/` and `docs/verification/evidence/room-hierarchy/live-2026-09-12/` are separate datasets with different transcript schemas. In the live artifact, `check_csv.py` correctly selects the CSV message through `message.from.name`; do not infer its schema from the parent scripted `transcripts.json`.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/index.ts:5884-5885
+Timestamp: 2026-09-12T05:08:31.140Z
+Learning: In `server/index.ts`, room handoff authorization (`roomHandoffProblem`, used by send-room-message, discuss-room, and assign-room-member internal endpoints) must enforce section boundaries across the entire room roster on both source and destination groups, not just the direct sender/recipient pair. `peerAllowed` (in `server/peer-roster.ts`) checks only the sender's `peers` allow-list and does not enforce `section`; section checks must use `sectionKey` comparisons separately, matching the boundary already enforced by `ask_bot` and `delegate_bot`. Opting a group into an incoming route (`incomingGroupIds`) must not override section isolation.
+```
+
+</details>
+
+<details>
+<summary>✅ Action performed</summary>
+
+Summary regenerated.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T05:16:52Z]
+@coderabbitai resume
+
+Integrated current upstream main in merge commit `7c6b1307` (base `536b7893`, including #1136 and #1153). Please review this final integration against current main.
+
+The implementation keeps main's canonical `coordinate_bots`, normal direct-chat coordination, explicit Chief team grants, compact receipts and existing scheduler. `discuss_room` is opt-in and exposed only for rooms requiring discussion. Incoming-group restrictions are optional; absent/null retains main's behavior. Discussion participants must independently have access to the full room and cannot inherit their chair's Chief grants.
+
+Both review-body nitpicks from your latest full review are also fixed: `cancelTree` publishes only when a node changes, and validated collaboration settings are passed into the single `updateChannel` save. The two inline findings already confirmed resolved remain fixed: Python 3.9 file output and immediate MCP child-exit rejection. Main's more complete fixture process/timeout cleanup is retained. The original user request is preserved when discussion creates the root request.
+
+Validation: 4 final focused suites / 51 tests pass; typecheck, lint, i18n and UI build pass. The updated deterministic five-group, fifteen-bot pyramid completed 45 turns with 5 work nodes, 10 assignments and 7 discussions. Current before/after settings plus discussion/result screenshots for **every group** are linked in the rewritten PR description, with transcripts and hashes. These are scripted workflow checks, not another live-model run. Historical GLM evidence stays pinned to its prior implementation and continues to record failed final CSV-column acceptance.
+
+All eight original conflict paths are resolved through the merge. The PR remains open and non-draft. The new head's ordinary CI is being verified separately; earlier successful runs do not certify this integration. Vercel remains a separate upstream-team authorization requirement.
+
+
+### #1126 coderabbitai[bot] [2026-09-13T05:18:13Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: c1719ab7-65c2-4bb5-a1e8-433fd31d22ad -->
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+repo="milind-soni/OpenMausBot"
+pr="1126"
+base="536b7893"
+head="7c6b1307"
+
+echo '== Pull request metadata and current checks =='
+gh pr view "$pr" --repo "$repo" --json url,state,isDraft,baseRefOid,headRefOid,mergeable,statusCheckRollup,reviewDecision 2>&1 || true
+
+echo '== Integration ancestry and merge parents =='
+git show -s --format='commit=%H%nparents=%P%nsubject=%s' "$head"
+git merge-base --is-ancestor "$base" "$head" && echo "base_is_ancestor=true" || echo "base_is_ancestor=false"
+git diff --check "$base..$head"
+
+echo '== Changed paths relative to stated base =='
+git diff --name-status "$base..$head"
+echo '== Diff stat =='
+git diff --stat "$base..$head"
+
+echo '== Candidate implementation and test outlines =='
+for f in server/index.ts server/room-handoffs.ts server/drivers/agents-proxy.ts server/store.ts scripts/mcp-server.ts scripts/control-omb.ts server/testing/room-handoff-agent.ts server/room-handoffs.test.ts server/room-handoffs-lifecycle.e2e.test.ts server/room-discussion.e2e.test.ts server/room-pyramid.e2e.test.ts; do
+  if [ -f "$f" ]; then
+    echo "-- $f"
+    ast-grep outline "$f" --items all --type class,function,method,interface,type --view expanded || true
+  fi
+done
+
+echo '== Coordination, discussion, and access-control references =='
+rg -n -C 6 --type ts 'coordinate_bots|discuss_room|incomingGroupIds|requireRoomDiscussion|roomHandoffProblem|sectionKey|peerAllowed|Chief|chief|cancelTree|updateChannel|original.*request|originalRequest|requestText' \
+  server/index.ts server/room-handoffs.ts server/drivers/agents-proxy.ts server/store.ts scripts/mcp-server.ts scripts/control-omb.ts server/testing/room-handoff-agent.ts 2>/dev/null || true
+
+echo '== Diff for core integration files =='
+git diff --find-renames --find-copies "$base..$head" -- \
+  server/index.ts server/room-handoffs.ts server/drivers/agents-proxy.ts server/store.ts \
+  scripts/mcp-server.ts scripts/control-omb.ts server/testing/room-handoff-agent.ts \
+  | sed -n '1,2600p'
+
+echo '== Test coverage references =='
+rg -n -C 4 --type ts 'coordinate_bots|discuss_room|incomingGroupIds|requireRoomDiscussion|section|Chief|cancelTree|child exit|Python|original' \
+  server/room-handoffs.test.ts server/room-handoffs-lifecycle.e2e.test.ts server/room-discussion.e2e.test.ts server/room-pyramid.e2e.test.ts server/drivers/agents-proxy.test.ts server/mcp-server.test.ts 2>/dev/null || true
+
+echo '== Current CodeRabbit review threads =='
+gh api graphql -F owner='milind-soni' -F name='OpenMausBot' -F number=1126 -f query='
+query($owner: String!, $name: String!, $number: Int!) {
+ repository(owner:$owner,name:$name) {
+  pullRequest(number:$number) {
+   reviewThreads(first:100) {
+    nodes {
+     isResolved isOutdated path line
+     comments(first:20) { nodes { author { login } body url } }
+    }
+   }
+  }
+ }
+}' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(any(.comments.nodes[]; .author.login == "coderabbitai")) | {isResolved,isOutdated,path,line,comments:[.comments.nodes[]|{author:.author.login,body,url}]}' 2>&1 || true
+
+echo '== Documentation and evidence claims changed by integration =='
+git diff --name-only "$base..$head" | rg '(^docs/verification/|sha256|transcript|README)' || true
+```
+
+Length of output: 203418
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+repo="milind-soni/OpenMausBot"
+pr="1126"
+
+echo '== Current pull request state =='
+gh pr view "$pr" --repo "$repo" --json url,state,isDraft,baseRefOid,headRefOid,mergeable,mergeStateStatus,statusCheckRollup,reviewDecision 2>&1 || true
+
+echo '== Integration commit and ancestry =='
+git show -s --format='commit=%H%nparents=%P%nsubject=%s' HEAD
+git merge-base --is-ancestor 536b7893 HEAD && echo 'base_536b7893_is_ancestor=true' || echo 'base_536b7893_is_ancestor=false'
+git diff --check 536b7893..HEAD
+
+echo '== Authorization and handoff orchestration =='
+nl -ba server/index.ts | sed -n '2200,2425p'
+echo '== Group-turn context and chained mention guards =='
+nl -ba server/index.ts | sed -n '6910,7305p'
+echo '== Internal discussion and coordination endpoints =='
+nl -ba server/index.ts | sed -n '10320,10565p'
+echo '== Group PATCH validation and update =='
+nl -ba server/index.ts | sed -n '12170,12235p'
+
+echo '== Handoff model and lifecycle =='
+nl -ba server/room-handoffs.ts | sed -n '1,225p'
+
+echo '== Targeted final-integration tests =='
+nl -ba server/room-handoffs-lifecycle.e2e.test.ts | sed -n '1,245p'
+nl -ba server/room-handoffs.test.ts | sed -n '1,220p'
+nl -ba server/room-discussion.e2e.test.ts | sed -n '1,120p'
+nl -ba server/room-pyramid.e2e.test.ts | sed -n '1,120p'
+
+echo '== Proxy schema and tool exposure =='
+nl -ba server/drivers/agents-proxy.ts | sed -n '350,390p;800,825p;915,950p'
+
+echo '== Integration evidence manifest validation =='
+if [ -f docs/verification/evidence/room-hierarchy/integration-2026-09-13/sha256.txt ]; then
+  (cd docs/verification/evidence/room-hierarchy/integration-2026-09-13 && sha256sum -c sha256.txt)
+fi
+
+echo '== Historical acceptance status and checker assertions =='
+rg -n -C 3 'passesFinalColumnContract|actual.*columns|required.*columns|final.*contract' \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12 \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12 || true
+
+echo '== Current check details =='
+gh pr checks "$pr" --repo "$repo" 2>&1 || true
+```
+
+Length of output: 132782
+
+---
+
+</details>
+
+`@Sunwood-ai-labs`, I completed the static review of the final integration at `7c6b1307` against base `536b7893`.
+
+I found no current integration defect.
+
+- The merge commit includes the stated current base. `git diff --check` reports no whitespace errors.
+- `coordinate_bots` remains the coordination path for direct chat and room turns.
+- `discuss_room` is available only for a coordinating room turn when `requireRoomDiscussion` is enabled.
+- An absent or `null` `incomingGroupIds` value preserves standard permitted-team coordination. An array restricts incoming room work.
+- `roomHandoffProblem` validates the sender, recipient, source roster, and destination roster. It applies access checks to every room member, including readers who do not speak.
+- Discussion participant validation independently checks each participant’s access to the complete room. A Chief’s access grant does not extend to a participant.
+- `coordinate_bots` rejects delegation while a discussion is pending. It also rejects delegation in a discussion-required room until an authorized discussion completes.
+- `cancelTree` publishes only when it changes a non-terminal node.
+- The root handoff preserves the original user request. The unit test verifies retention and the 12,000-character bound.
+- The integration evidence manifest validates all 28 listed artifacts.
+- Historical CSV evidence still records the required limitation: seven actual columns, eight required columns, and `passesFinalColumnContract: false`.
+
+The focused test files include coverage for route reset, duplicate normalization, section isolation, Chief-grant isolation, queued dispatch revalidation, mention suppression, cancellation, and the 15-bot pyramid.
+
+Current CI is not complete. The macOS, Ubuntu, Windows, packaging, Swift, and Kotlin jobs were still pending at review time. Vercel reports an external authorization requirement. Therefore, this review does not claim full CI validation for `7c6b1307`.
+
+I used the existing room-roster and evidence-schema context during this review.
+
+
+
+---
+
+<details>
+<summary>🧠 Learnings used</summary>
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: docs/verification/evidence/room-hierarchy/live-2026-09-12/check_csv.py:7-7
+Timestamp: 2026-09-12T05:08:51.156Z
+Learning: The verification artifacts under `docs/verification/evidence/room-hierarchy/` and `docs/verification/evidence/room-hierarchy/live-2026-09-12/` are separate datasets with different transcript schemas. In the live artifact, `check_csv.py` correctly selects the CSV message through `message.from.name`; do not infer its schema from the parent scripted `transcripts.json`.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/index.ts:5884-5885
+Timestamp: 2026-09-12T05:08:31.140Z
+Learning: In `server/index.ts`, room handoff authorization (`roomHandoffProblem`, used by send-room-message, discuss-room, and assign-room-member internal endpoints) must enforce section boundaries across the entire room roster on both source and destination groups, not just the direct sender/recipient pair. `peerAllowed` (in `server/peer-roster.ts`) checks only the sender's `peers` allow-list and does not enforce `section`; section checks must use `sectionKey` comparisons separately, matching the boundary already enforced by `ask_bot` and `delegate_bot`. Opting a group into an incoming route (`incomingGroupIds`) must not override section isolation.
+```
+
+</details>
+
+<details>
+<summary>✅ Action performed</summary>
+
+Reviews resumed and review finished.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T05:19:49Z]
+@coderabbitai review
+
+### #1126 Sunwood-ai-labs [2026-09-13T05:29:06Z]
+Follow-up `521acd31` changes only `server/index.test.ts`: the import regression now compares all existing Chief IDs before/after import instead of assuming a single Chief globally. This preserves the privilege-injection check and also catches changes to Chiefs in other sections.
+
+The stale assertion reproduced in the full API file on untouched upstream `536b7893`; the case passes alone on both branches, demonstrating the shared-fixture/order dependence. After the fix, the **entire API file passes: 206 passed, 1 skipped, 187.51s**. No runtime code changed after the reviewed integration `7c6b1307`.
+
+The earlier local full `pnpm test` remains incomplete because its Windows renderer worker stopped progressing and was terminated; the successful focused runs are not being presented as a full-suite pass. Fresh CI is checking the final head. The PR stays open and non-draft, with no merge conflict.
+
+Thank you for confirming no current integration defect in https://github.com/milind-soni/OpenMausBot/pull/1126#issuecomment-5651347532. One evidence-count clarification: the integration manifest contains **26 hashed artifacts**; the directory additionally contains its README and `.gitattributes`.
+
+
+### #1126 coderabbitai[bot] [2026-09-13T05:40:05Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:17cde3f3851e6b66b32b8a264e46971a367acd06245790edd77680115e0ba0cf -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T05:56:19Z]
+@coderabbitai summary
+
+Please reconcile the summary with the three findings withdrawn after verification:
+
+- Ordinary direct chats already enable bounded coordination: https://github.com/milind-soni/OpenMausBot/pull/1126#discussion_r3998881403 . All ten direct-coordination tests pass on rerun.
+- Never-released experimental room approval keys must not be promoted to broader `delegate_bot` grants: https://github.com/milind-soni/OpenMausBot/pull/1126#discussion_r3998872475 .
+- A bot can participate in distinct group conversations; the upstream and PR real-server probes both complete `A/X → B/Y → C/X`, while new work back to A or B is rejected: https://github.com/milind-soni/OpenMausBot/pull/1126#discussion_r3998879591 .
+
+CI update: run [34740384858](https://github.com/milind-soni/OpenMausBot/actions/runs/34740384858) at `521acd31` passed seven jobs, but the three OS test jobs hit their **overall job deadlines**: Linux/macOS 20 minutes and Windows 25 minutes. GitHub annotations explicitly confirm those timeouts. Logs show continuing successful test-file progress immediately before cancellation; these were not newer-push cancellations and the unfinished suites are not counted as successful.
+
+Commit `d8b2ed7d` changes only the overall budgets to Linux/macOS 30 minutes and Windows 35 minutes. YAML structural comparison verifies `jobs.test.timeout-minutes` is the only changed data field; every test, per-test deadline, native smoke check and read-only permission remains in place. [Fresh CI for this exact head](https://github.com/milind-soni/OpenMausBot/actions/runs/34741467940) is running. Please retain the pending-CI status and the historical failed final CSV acceptance in the summary.
+
+
+### #1126 coderabbitai[bot] [2026-09-13T06:04:08Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: 2e6794be-6998-4e33-8a19-819ac7d15f75 -->
+`@Sunwood-ai-labs`, I will regenerate the PR summary with these corrections:
+
+- The three findings are withdrawn:
+  - Ordinary direct chats set `OMB_ROOM_TURN="1"` for bounded coordination. They retain `coordinate_bots` and `list_room_targets`.
+  - Never-released experimental room approval keys must not migrate to the broader `delegate_bot` authorization scope.
+  - Ancestor validation remains group-sensitive. It allows `A/X → B/Y → C/X` and blocks new work that returns to ancestor rooms.
+- The summary will state that the ten direct-coordination tests passed on rerun.
+- CI run `34740384858` passed seven jobs. The Linux, macOS, and Windows test jobs reached their overall job deadlines. The summary will not count those unfinished jobs as successful.
+- Commit `d8b2ed7d` changes only `jobs.test.timeout-minutes` to 30 minutes on Linux/macOS and 35 minutes on Windows. Individual test deadlines, native smoke checks, and read-only permissions remain unchanged.
+- CI run `34741467940` is pending for the current head. The summary will retain this pending-CI status.
+- The historical evidence remains limited: the CSV has seven actual columns against an eight-column final contract, and `passesFinalColumnContract: false`. Workflow execution does not certify artifact acceptance.
+
+I used the existing review context for the three withdrawn findings.
+
+
+
+---
+
+<details>
+<summary>🧠 Learnings used</summary>
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/drivers/agents-proxy.ts:810-810
+Timestamp: 2026-09-13T05:54:06.008Z
+Learning: In `server/drivers/agents-proxy.ts`, `OMB_ROOM_TURN` identifies a turn that has bounded coordination capability. It does not identify group-room membership. In `server/index.ts`, ordinary direct chats set this environment variable to `"1"` through `boundedCoordination`, so they retain `coordinate_bots` and `list_room_targets`. Non-coordinating turns must keep these tools hidden because another completion owner controls them.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/room-handoffs.ts:93-94
+Timestamp: 2026-09-13T05:52:56.908Z
+Learning: In `server/room-handoffs.ts`, the ancestor-bot validation in `RoomHandoffs.enqueue` is intentionally group-sensitive. The same bot may receive work in a distinct group conversation, such as `A/X → B/Y → C/X`. A bot-global ancestor prohibition would remove this supported capability. The separate `kind === "work"` ancestor-group guard, together with depth, request, execution, and lifetime limits, prevents returns to ancestor rooms and bounds the handoff tree.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/peer-approval-key.ts:1-1
+Timestamp: 2026-09-13T05:49:54.617Z
+Learning: In OpenMausBot, `server/store.ts` must migrate persisted peer-approval keys only when the old and new action have the same authorization scope. Experimental `send_room_message` and `assign_room_member` keys were never released through upstream main. Do not convert them to `delegate_bot`, because `delegate_bot` also authorizes direct-chat and new-task coordination and would widen the original grant.
+```
+
+</details>
+
+<details>
+<summary>✅ Action performed</summary>
+
+Summary regeneration completed, but the summary was unchanged.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T06:29:45Z]
+Final review and CI evidence for `d8b2ed7dd6e3204a7aac0c8a95c84c149885ed36`:
+
+- All **17 review threads are resolved**. The three integration findings and the later timeout-comment observation were withdrawn after verification; actual review fixes are already pushed. [Latest withdrawal and resolution](https://github.com/milind-soni/OpenMausBot/pull/1126#discussion_r3998953568).
+- [Final-head CI run 34741467940](https://github.com/milind-soni/OpenMausBot/actions/runs/34741467940): **7 jobs passed; the three OS test jobs failed on the same 23 existing test cases**.
+- This run finishes the Vitest suites instead of reaching the old job deadlines. The full CI is **not green**: its failed cases already occur on the integrated upstream commit `536b7893549924c3e2b71eb2e9564ea2986a146a`, in [upstream run 34726937095](https://github.com/milind-soni/OpenMausBot/actions/runs/34726937095).
+
+| Platform | This PR, final head | Upstream `536b7893` |
+| --- | --- | --- |
+| Linux | 6,367 passed / 23 failed / 33 skipped / 1 todo | Its upstream job was cancelled; all 23 failure names match upstream macOS and Windows |
+| macOS | 6,350 passed / 23 failed / 50 skipped / 1 todo | 6,323 passed / the same 23 failed / 50 skipped / 1 todo |
+| Windows | 6,197 passed / the same 23 failed / 203 skipped / 1 todo | 6,170 passed / 23 failed / 203 skipped / 1 todo |
+
+Failure-name sets were compared mechanically, not inferred from the total count. The existing failures are in `server/comms.test.ts` (15), `server/independent-threads-api.test.ts` (1), `server/peer-allowlist.e2e.test.ts` (1), `server/routine-delegation.e2e.test.ts` (1), and `server/thread-aware-bots.e2e.test.ts` (5). These five test files are unchanged from the integrated upstream commit. They include legacy coordination/tool/prompt expectations. No additional failing case was observed in the completed comparisons. The added hierarchy tests pass.
+
+Direct same-platform evidence:
+
+- macOS: [PR job](https://github.com/milind-soni/OpenMausBot/actions/runs/34741467940/job/103681772465), [upstream job](https://github.com/milind-soni/OpenMausBot/actions/runs/34726937095/job/103644830278).
+- Windows: [PR job](https://github.com/milind-soni/OpenMausBot/actions/runs/34741467940/job/103681772505), [upstream job](https://github.com/milind-soni/OpenMausBot/actions/runs/34726937095/job/103644830229).
+
+The matrix stops at the failing `pnpm test`; later Electron/native smoke steps are therefore not certified by this run. Vercel remains a separate upstream-team authorization failure. The PR remains open, non-draft and unmerged. Current five-group screenshots and scripted routing evidence are in the PR body; historical GLM evidence still records the failed final CSV column contract.
+
+
+### #1126 Sunwood-ai-labs [2026-09-13T10:14:52Z]
+The 23 failing cases are now fixed in **`9a8b405917c1aa77b25f2665949340effafdf533`**, as a separate common commit also shared with PR #959.
+
+Ordinary-chat tests were still invoking legacy tools after upstream introduced `coordinate_bots`. They now exercise actual addressed work through the injected MCP, including ACP/Antigravity, approval Allow/Deny, busy recipients, provider reload, failed/empty results, source resumption, separate task ownership, and ancestor rejection. The fake ACP provider also retains the MCP entry supplied on session load/resume, so a second user turn exercises the current capability.
+
+Coverage is preserved: `comms.test.ts` retains **all 25 cases**; the five migrated files increase from **60 to 61 cases** with a new real-routine capability check. Existing legacy thread API admission, concurrency, approval, notification and deletion assertions remain, while real ordinary-chat capabilities are explicitly rejected from that API. The real routine test confirms the opposite mode boundary and actual result return. No test was deleted or newly skipped; no production permission check or API was weakened. [Old-to-new scenario mapping](https://github.com/Sunwood-ai-labs/OpenMakiBot/blob/9a8b405917c1aa77b25f2665949340effafdf533/docs/verification/coordination-test-migration.md).
+
+Local isolated validation:
+
+- All five migrated files: **60 passed / 1 existing skip**, 172.47 seconds.
+- ACP driver + direct coordination + scheduler limits: **96 passed**, 102.29 seconds.
+- `pnpm typecheck` and `pnpm lint`: passed.
+- The complete `pnpm test` is now running; focused results are not being presented as a full-suite pass.
+
+Final verification update (2026-09-13): **`0a4c81ae7bd6988285b82e94ed78d565db4efb2d` passes all 10 CI jobs plus CLA**. [Final-head CI](https://github.com/milind-soni/OpenMausBot/actions/runs/34752961414).
+
+- Vitest: macOS **6,376 passed**, Linux **6,393 passed**, Windows **6,223 passed**; existing platform skips and the todo remain.
+- All three OS jobs then passed broker, Electron, packaged-server startup without node_modules, all 12 proxy paths, MCP final-frame flushing, and 100 Electron syntax checks. macOS native approval/display/phone-authorization checks and the Linux production UI build also passed.
+- Follow-ups preserve recipient history/task ownership, wait for source settlement before reload, use explicit gates for concurrency assertions, fix locale-dependent fixtures, and close Windows test launchers through graceful parent IPC. No test or meaningful assertion was removed.
+- The earlier full local run is not relabeled green: it had symlink-creation EPERM restrictions and other pre-fix/intermittent fixture failures, including a worker exit. Focused post-fix UI/coordination checks and local broker/Electron/packaged/syntax checks pass; the complete hosted run above is independent final-head evidence.
+- All 17 CodeRabbit threads are resolved; the final-head review reports no actionable comments. The PR remains open and unmerged. The earlier Vercel authorization notice is separate: no Vercel check is attached to this head, and deployment has not been verified.
+
+
+### #1126 Sunwood-ai-labs [2026-09-13T10:21:10Z]
+@coderabbitai review
+
+### #1126 coderabbitai[bot] [2026-09-13T10:22:44Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:c242c1e871b4d8ebff56fd3c23d5e859aea54ee964b1609866e087fe558a673a -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T10:45:47Z]
+@coderabbitai review
+
+### #1126 coderabbitai[bot] [2026-09-13T10:45:52Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:f56c762be160dd2e75c61fe0d242b86d4b66f64da835aab31f2b35a477ca85ca -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T10:53:22Z]
+@coderabbitai review
+
+### #1126 coderabbitai[bot] [2026-09-13T10:53:27Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:996c2fdfb81e32466ff9c2e3692e2e8507ec3efdbf619192cc458329944a2fcf -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T14:07:06Z]
+Reviewed the complete review bodies (including outside-diff findings), regular comments and all 17 review threads. No new human review or actionable finding has appeared since the previous audit.
+
+The two body-only notes in [review 5189434865](https://github.com/milind-soni/OpenMausBot/pull/1126#pullrequestreview-5189434865) are already fixed: cancellation publishes only nodes whose nonterminal state changes; the group update passes the validated incoming settings through one `updateChannel` patch.
+
+Upstream main advanced to `f8cbc562b4b8ac70d343b472c29843a8f001de85`, producing four merge conflicts. The branch now includes that main and preserves both hierarchy settings/tools and the upstream canvas/shared-computer additions. Follow-ups refresh the 23 stale upstream Ukrainian translations and their source hashes, wait for browser fixture turns before removing their profiles, and apply graceful IPC cleanup to the new UI fixtures. All behavioral assertions remain intact.
+
+Current head: `c96581b882865a8517a8eca396f82ed079f9cac8`. Typecheck, lint, locale validation and production build pass. Isolated hierarchy/shared-computer and UI verification is still running; initial UI launches had local browser-open timeouts, so they are not reported as successful. The green CI on `0a4c81ae` is historical and does not certify this integration. Current-head CI is being checked separately.
+
+CodeRabbit's previous coverage matches `0a4c81ae`, but automatic review is paused, so this new head needs an explicit review. No human maintainer approval or merge has occurred.
+
+@coderabbitai review
+
+
+### #1126 coderabbitai[bot] [2026-09-13T14:07:24Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:df8f4d4ae53205268ea77df1665a831ccfbb41bf9baeee3142c19937138f40ea -->
+`@Sunwood-ai-labs`, I will review the current integration at `c96581b882865a8517a8eca396f82ed079f9cac8`. I will treat the earlier green CI for `0a4c81ae` as historical evidence only.
+
+
+
+---
+
+<details>
+<summary>🧠 Learnings used</summary>
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: .github/workflows/ci.yml:27-28
+Timestamp: 2026-09-13T06:31:56.118Z
+Learning: In `.github/workflows/ci.yml`, the comments above the `test` job `timeout-minutes` expression intentionally report observed progress at 20 minutes on macOS/Linux and 25 minutes on Windows in the preceding run. The adjacent expression is the source of truth for the active 30-minute macOS/Linux and 35-minute Windows timeout limits.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/drivers/agents-proxy.ts:810-810
+Timestamp: 2026-09-13T05:54:06.008Z
+Learning: In `server/drivers/agents-proxy.ts`, `OMB_ROOM_TURN` identifies a turn that has bounded coordination capability. It does not identify group-room membership. In `server/index.ts`, ordinary direct chats set this environment variable to `"1"` through `boundedCoordination`, so they retain `coordinate_bots` and `list_room_targets`. Non-coordinating turns must keep these tools hidden because another completion owner controls them.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/room-handoffs.ts:93-94
+Timestamp: 2026-09-13T05:52:56.908Z
+Learning: In `server/room-handoffs.ts`, the ancestor-bot validation in `RoomHandoffs.enqueue` is intentionally group-sensitive. The same bot may receive work in a distinct group conversation, such as `A/X → B/Y → C/X`. A bot-global ancestor prohibition would remove this supported capability. The separate `kind === "work"` ancestor-group guard, together with depth, request, execution, and lifetime limits, prevents returns to ancestor rooms and bounds the handoff tree.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/room-handoffs.ts:107-107
+Timestamp: 2026-09-12T05:18:52.807Z
+Learning: In `server/room-handoffs.ts`, `RoomHandoffs.path(parent)` includes the root source node, which has `kind: "work"`. `ROOM_HANDOFF_LIMITS.depth` limits cross-room edges, not total work nodes. The `path.filter(n => n.kind === "work").length > ROOM_HANDOFF_LIMITS.depth` check correctly permits four cross-room edges and rejects a fifth.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: docs/verification/evidence/room-hierarchy/live-2026-09-12/check_csv.py:7-7
+Timestamp: 2026-09-12T05:08:51.156Z
+Learning: The verification artifacts under `docs/verification/evidence/room-hierarchy/` and `docs/verification/evidence/room-hierarchy/live-2026-09-12/` are separate datasets with different transcript schemas. In the live artifact, `check_csv.py` correctly selects the CSV message through `message.from.name`; do not infer its schema from the parent scripted `transcripts.json`.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: server/index.ts:5884-5885
+Timestamp: 2026-09-12T05:08:31.140Z
+Learning: In `server/index.ts`, room handoff authorization (`roomHandoffProblem`, used by send-room-message, discuss-room, and assign-room-member internal endpoints) must enforce section boundaries across the entire room roster on both source and destination groups, not just the direct sender/recipient pair. `peerAllowed` (in `server/peer-roster.ts`) checks only the sender's `peers` allow-list and does not enforce `section`; section checks must use `sectionKey` comparisons separately, matching the boundary already enforced by `ask_bot` and `delegate_bot`. Opting a group into an incoming route (`incomingGroupIds`) must not override section isolation.
+```
+
+</details>
+
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T14:17:00Z]
+Follow-up head `47dc97f7e18c1aabd62860edddebe94ddb189a45` is now conflict-free against main `f8cbc562`.
+
+The new upstream Windows mode assertion is now portable while retaining real atomic writes: every write must request 0600 on every OS, POSIX still checks the exact persisted mode, and Windows checks the owner read/write bits its stat implementation exposes. No runtime permissions change and no test is removed. The unchanged symlink-security case still encounters local fixture-creation EPERM and remains required in CI.
+
+The saved-key UI recipe now waits for exactly one visible named control; it passes with the original saved-key, erased-draft, provider-result and cleanup assertions. Canvas and shared-computer UI scenarios also pass. Fresh current-main before/after screenshots, DOM snapshots, fixture API settings and hashes are linked in the PR description. Historical live-model limitations remain explicit.
+
+[Current-head CI](https://github.com/milind-soni/OpenMausBot/actions/runs/34762161279) is pending. Please include these final follow-ups in the review; previous-head coverage does not certify this head.
+
+@coderabbitai review
+
+
+### #1126 coderabbitai[bot] [2026-09-13T14:30:48Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:9e516cfdf788d6bccb5e2d49016834ab69af335315a4aee21520104bd4c8df9f -->
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+repo="milind-soni/OpenMausBot"
+pr="1126"
+base="f8cbc562"
+head="47dc97f7e18c1aabd62860edddebe94ddb189a45"
+
+echo '== PR metadata and checks =='
+gh pr view "$pr" --repo "$repo" --json url,state,isDraft,baseRefOid,headRefOid,mergeable,mergeStateStatus,statusCheckRollup,reviewDecision 2>&1 || true
+
+echo '== Head and ancestry =='
+git show -s --format='commit=%H%nparents=%P%nsubject=%s' "$head"
+git merge-base --is-ancestor "$base" "$head" && echo "base_is_ancestor=true" || echo "base_is_ancestor=false"
+git diff --check "$base..$head"
+
+echo '== Changed paths and stat from current main =='
+git diff --name-status "$base..$head"
+git diff --stat "$base..$head"
+
+echo '== Follow-up commits and relevant diffs =='
+git log --oneline --decorate "$base..$head" | sed -n '1,120p'
+git diff --find-renames --find-copies "$base..$head" -- \
+  server/store.ts server/index.test.ts scripts/testing/control-omb-ui.e2e.test.ts \
+  scripts/testing/cloud-preview.tsx scripts/testing/team-canvas-ui.e2e.test.ts \
+  scripts/testing/team-computers-ui.e2e.test.ts server/testing/cleanup.ts \
+  src/locales/uk.json src/locales/source-hashes.json .github/workflows/ci.yml \
+  | sed -n '1,3200p'
+
+echo '== Find permission assertion and saved-key UI recipe =='
+rg -n -C 8 --type ts --type tsx \
+  '0o600|0600|mode|chmod|statSync|saved.?key|visible.*control|getBy(Role|Label|Text)|toHaveCount' \
+  server scripts src 2>/dev/null || true
+
+echo '== Structure of changed implementation/tests =='
+git diff --name-only "$base..$head" | while IFS= read -r f; do
+  case "$f" in
+    *.ts|*.tsx)
+      echo "-- $f"
+      ast-grep outline "$f" --items all --type class,function,method,interface,type --view expanded 2>/dev/null || true
+      ;;
+  esac
+done
+
+echo '== Core coordination/discussion references =='
+rg -n -C 5 --type ts \
+  'coordinate_bots|discuss_room|incomingGroupIds|requireRoomDiscussion|roomHandoffProblem|cancelTree|updateChannel|boundedCoordination|OMB_ROOM_TURN' \
+  server/index.ts server/room-handoffs.ts server/drivers/agents-proxy.ts server/store.ts 2>/dev/null || true
+
+echo '== Targeted core test definitions =='
+for f in server/room-handoffs.test.ts server/room-handoffs-lifecycle.e2e.test.ts server/room-discussion.e2e.test.ts server/room-pyramid.e2e.test.ts server/index.test.ts; do
+  if [ -f "$f" ]; then
+    echo "-- $f"
+    ast-grep outline "$f" --items all --type function --view expanded 2>/dev/null || true
+  fi
+done
+
+echo '== Evidence manifests =='
+for manifest in \
+  docs/verification/evidence/room-hierarchy/integration-2026-09-13/sha256.txt \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12/sha256.txt \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12/sha256.txt
+do
+  if [ -f "$manifest" ]; then
+    echo "-- $manifest"
+    (cd "$(dirname "$manifest")" && sha256sum -c "$(basename "$manifest")) || true
+  fi
+done
+
+echo '== Historical CSV acceptance state =='
+rg -n -C 3 'passesFinalColumnContract|seven|eight|actual.*columns|required.*columns' \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12 \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12 2>/dev/null || true
+
+echo '== Current CI run and PR checks =='
+gh run view 34762161279 --repo "$repo" --json status,conclusion,headSha,workflowName,jobs,url 2>&1 || true
+gh pr checks "$pr" --repo "$repo" 2>&1 || true
+```
+
+Length of output: 19519
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -uo pipefail
+
+repo="milind-soni/OpenMausBot"
+pr="1126"
+base="f8cbc562"
+head="47dc97f7e18c1aabd62860edddebe94ddb189a45"
+
+echo '== Changed paths =='
+git diff --name-status "$base..$head" || true
+git diff --stat "$base..$head" || true
+echo '== Commit list =='
+git log --oneline "$base..$head" | sed -n '1,140p' || true
+
+echo '== Evidence EOL and attributes =='
+for f in \
+  docs/verification/evidence/room-hierarchy/upstream-f8cbc562/.gitattributes \
+  docs/verification/evidence/room-hierarchy/upstream-f8cbc562/after-configured-settings.json \
+  docs/verification/evidence/room-hierarchy/upstream-f8cbc562/sha256.txt
+do
+  echo "-- $f"
+  git check-attr -a -- "$f" || true
+  if [ -f "$f" ]; then
+    file "$f" || true
+    sed -n '1,45l' "$f" || true
+  fi
+done
+echo '== Diff-check condensed =='
+git diff --check "$base..$head" 2>&1 | sed -n '1,180p' || true
+
+echo '== Permission test source context =='
+rg -n -C 12 --type ts '0o600|0600|statSync|mode.*owner|owner.*mode|atomic' server scripts 2>/dev/null || true
+
+echo '== Saved-key test source context =='
+rg -n -C 12 --type ts --type tsx 'saved.?key|erased.?draft|provider-result|visible.*named|toHaveCount|filter\(\{.*visible' scripts/testing src 2>/dev/null || true
+
+echo '== Full diff for likely follow-up paths =='
+git diff "$base..$head" -- \
+  server/index.test.ts server/store.ts server/testing/cleanup.ts \
+  scripts/testing/control-omb-ui.e2e.test.ts scripts/testing/cloud-preview.tsx \
+  scripts/testing/team-canvas-ui.e2e.test.ts scripts/testing/team-computers-ui.e2e.test.ts \
+  src/locales/uk.json src/locales/source-hashes.json \
+  | sed -n '1,3000p' || true
+
+echo '== Core source selected ranges =='
+rg -n --type ts 'function roomHandoffProblem|const roomHandoffProblem|async function runGroupMemberTurn|function runGroupMemberTurn|/api/internal/coordinate-bots|/api/internal/discuss-room|function updateChannel|const updateChannel' server/index.ts server/room-handoffs.ts || true
+nl -ba server/room-handoffs.ts | sed -n '1,220p' || true
+nl -ba server/drivers/agents-proxy.ts | sed -n '780,970p' || true
+
+echo '== Current manifests =='
+for manifest in \
+  docs/verification/evidence/room-hierarchy/upstream-f8cbc562/sha256.txt \
+  docs/verification/evidence/room-hierarchy/integration-2026-09-13/sha256.txt \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12/sha256.txt \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12/sha256.txt
+do
+  echo "-- $manifest"
+  if [ -f "$manifest" ]; then
+    (cd "$(dirname "$manifest")" && sha256sum -c "$(basename "$manifest")) 2>&1 || true
+  fi
+done
+
+echo '== CI now =='
+gh run view 34762161279 --repo "$repo" --json status,conclusion,headSha,jobs,url 2>&1 || true
+gh pr checks "$pr" --repo "$repo" 2>&1 || true
+```
+
+Length of output: 189473
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -u
+
+repo="milind-soni/OpenMausBot"
+pr="1126"
+base="f8cbc562"
+head="47dc97f7e18c1aabd62860edddebe94ddb189a45"
+
+echo '== Changed file list =='
+git diff --name-only "$base..$head" || true
+
+echo '== Exact permission-related changes =='
+git diff -U30 "$base..$head" -- server/fleet-cli-filesystem.test.ts server/atomic.test.ts server/index.test.ts | sed -n '1,2200p' || true
+
+echo '== Exact saved-key test helper and uses =='
+nl -ba scripts/testing/control-omb-ui.e2e.test.ts | sed -n '110,230p' || true
+rg -n -C 3 --type ts 'function refsNamed|const refsNamed|refsNamed\(' scripts/testing/control-omb-ui.e2e.test.ts || true
+
+echo '== IPC cleanup handler implementations =='
+rg -n -C 8 --type ts 'control-omb:stop|process\.on\("message"|process\.once\("disconnect"|function main|async function main' scripts/control-omb.ts scripts/testing/team-computers-preview.ts server/testing/cleanup.ts || true
+
+echo '== Evidence attribute and EOL verification =='
+for f in \
+  docs/verification/evidence/room-hierarchy/upstream-f8cbc562/.gitattributes \
+  docs/verification/evidence/room-hierarchy/upstream-f8cbc562/after-configured-settings.json \
+  docs/verification/evidence/room-hierarchy/upstream-f8cbc562/sha256.txt
+do
+  printf '%s\n' "-- ${f}"
+  git check-attr -a -- "$f" || true
+  file "$f" || true
+  sed -n '1,12l' "$f" || true
+done
+
+echo '== Manifest verification =='
+for manifest in \
+  docs/verification/evidence/room-hierarchy/upstream-f8cbc562/sha256.txt \
+  docs/verification/evidence/room-hierarchy/integration-2026-09-13/sha256.txt \
+  docs/verification/evidence/room-hierarchy/live-2026-09-12/sha256.txt \
+  docs/verification/evidence/room-hierarchy/review-live-2026-09-12/sha256.txt
+do
+  printf '%s\n' "-- ${manifest}"
+  if test -f "$manifest"; then
+    (cd "$(dirname "$manifest")" && sha256sum -c "$(basename "$manifest")) 2>&1 | tail -n 40
+  else
+    echo 'missing'
+  fi
+done
+
+echo '== Diff-check output and affected attributes =='
+git diff --check "$base..$head" 2>&1 | head -n 80 || true
+git ls-files --eol docs/verification/evidence/room-hierarchy/upstream-f8cbc562 | sed -n '1,80p' || true
+
+echo '== Current CI =='
+gh run view 34762161279 --repo "$repo" --json status,conclusion,headSha,jobs,url 2>&1 || true
+gh pr checks "$pr" --repo "$repo" 2>&1 || true
+```
+
+Length of output: 41944
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -u
+
+echo '== Recent commits after current main =='
+git log --format='%H%x09%s' f8cbc562..47dc97f7e18c1aabd62860edddebe94ddb189a45 | head -n 40 || true
+
+echo '== Current-head commit diff =='
+git show --format=fuller --stat --find-renames 47dc97f7e18c1aabd62860edddebe94ddb189a45 | head -n 180 || true
+git show --format= --find-renames 47dc97f7e18c1aabd62860edddebe94ddb189a45 -- | sed -n '1,2200p' || true
+
+echo '== Portable permission assertions =='
+rg -n -C 10 --glob '*test.ts' --glob '*test.tsx' \
+  'process\.platform.*win32|win32.*mode|mode.*0o600|0o600.*mode|owner read|owner.*write' \
+  server scripts | sed -n '1,1800p' || true
+
+echo '== Hash manifests verified byte-for-byte =='
+python3 - <<'PY'
+from pathlib import Path
+import hashlib
+manifests = [
+    Path("docs/verification/evidence/room-hierarchy/upstream-f8cbc562/sha256.txt"),
+    Path("docs/verification/evidence/room-hierarchy/integration-2026-09-13/sha256.txt"),
+    Path("docs/verification/evidence/room-hierarchy/live-2026-09-12/sha256.txt"),
+    Path("docs/verification/evidence/room-hierarchy/review-live-2026-09-12/sha256.txt"),
+]
+for manifest in manifests:
+    print(f"-- {manifest}")
+    if not manifest.exists():
+        print("MISSING")
+        continue
+    data = manifest.read_bytes().splitlines()
+    failures = []
+    entries = 0
+    for line in data:
+        if not line.strip():
+            continue
+        digest, name = line.decode("ascii").rstrip("\r").split(None, 1)
+        target = manifest.parent / name.strip()
+        actual = hashlib.sha256(target.read_bytes()).hexdigest() if target.is_file() else None
+        entries += 1
+        if actual != digest:
+            failures.append(name)
+    print(f"entries={entries} failures={failures}")
+PY
+
+echo '== Current-head CI status =='
+gh run view 34762161279 --repo milind-soni/OpenMausBot --json status,conclusion,headSha,jobs,url 2>&1 || true
+gh pr checks 1126 --repo milind-soni/OpenMausBot 2>&1 || true
+```
+
+Length of output: 203890
+
+---
+
+</details>
+
+`@Sunwood-ai-labs`, I completed the static review of `47dc97f7e18c1aabd62860edddebe94ddb189a45` against `f8cbc562`.
+
+I found no current actionable defect.
+
+- The head contains `f8cbc562`. GitHub reports the PR as mergeable.
+- `server/team-computers.test.ts` Lines 40-48 preserves the atomic-write check. Every write requests `mode: 0o600`. POSIX retains the exact persisted-mode check. Windows checks the owner read/write bits that its `stat` result exposes.
+- `scripts/testing/control-omb-ui.e2e.test.ts` Lines 135-139 waits for exactly one visible control with the requested accessible name before the test uses a name-based click. The existing saved-key, erased-draft, provider-result, and cleanup assertions remain.
+- The new IPC cleanup path handles both `"control-omb:stop"` and parent disconnect. The bounded fallback cleanup still applies.
+- The current-upstream UI evidence preserves CRLF bytes intentionally. Its `.gitattributes` marks `.txt` and `.json` files as `-text`. The `git diff --check` output for these byte-preserved artifacts is not a source whitespace defect.
+- Checksum verification passed for all inspected manifests: 10 current-upstream UI artifacts, 26 integration artifacts, and 16 artifacts in each historical live-evidence directory.
+- Historical evidence still has the documented acceptance limitation. The seven-column CSV does not meet the eight-column final contract.
+
+CI run `34762161279` is still in progress for Linux, macOS, and Windows. Seven CI jobs and CLA have passed. This review does not treat the pending matrix jobs as successful. Vercel still reports an external deployment-authorization requirement.
+
+I used the existing room-handoff boundary and evidence-schema context during this review.
+
+
+
+---
+
+<details>
+<summary>🧠 Learnings used</summary>
+
+```
+Learnt from: Sunwood-ai-labs
+Repo: milind-soni/OpenMausBot PR: 1126
+File: .github/workflows/ci.yml:27-28
+Timestamp: 2026-09-13T06:31:56.118Z
+Learning: In `.github/workflows/ci.yml`, the comments above the `test` job `timeout-minutes` expression intentionally report observed progress at 20 minutes on macOS/Linux and 25 minutes on Windows in the preceding run. The adjacent expression is the source of truth for the active 30-minute macOS/Linux and 35-minute Windows timeout limits.
+```
+
+</details>
+
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T15:20:47Z]
+The completed `47dc97f7` run passed Linux, macOS and the seven other CI jobs plus CLA, but Windows reported two failures. These are not treated as a green full suite.
+
+`5bf7667c` fixes the team-setup fixture's name collision: forcing the initial bot to be named Patch reproduces the previous failure. The test now checks the complete existing bot-ID set before approval and after denial, identifies the three newly created specialists by new IDs, and verifies the original Patch and its conversation remain intact. All existing approval, continuation, cancellation, update and deletion scenarios remain.
+
+`7f436859` adds diagnostics for the shared-computer MCP timeout. The cause is still unconfirmed: local isolated runs pass. The existing 15-second deadline and every assertion remain unchanged. On failure, the test reports only the pending operation, elapsed time, connection/exit state and recent HTTP route/status events, without credentials, command text or file contents.
+
+The four affected suites pass all 32 tests in 21.19 seconds on this branch. Current-head CI must establish the hosted Windows outcome independently. Previous-head review coverage is not substituted for review of these follow-ups.
+
+@coderabbitai review
+
+
+### #1126 coderabbitai[bot] [2026-09-13T15:22:57Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+> [!TIP]
+> For best results, initiate chat on the files or code changes.
+
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+repo="milind-soni/OpenMausBot"
+pr="1126"
+fix_team="5bf7667c"
+fix_diag="7f436859"
+
+echo '== PR metadata and check status =='
+gh pr view "$pr" --repo "$repo" --json url,state,isDraft,baseRefOid,headRefOid,mergeable,mergeStateStatus,statusCheckRollup,reviewDecision
+
+echo '== Follow-up commits =='
+for commit in "$fix_team" "$fix_diag" HEAD; do
+  git show -s --format='commit=%H%nparents=%P%nsubject=%s%n' "$commit"
+done
+git merge-base --is-ancestor "$fix_team" HEAD && echo 'team_fix_is_in_head=true'
+git merge-base --is-ancestor "$fix_diag" HEAD && echo 'diagnostic_fix_is_in_head=true'
+git diff --check "$fix_team^..HEAD"
+
+echo '== Changed paths and exact diffs =='
+git diff --name-status "$fix_team^..HEAD"
+git diff -U50 "$fix_team^..HEAD" -- server/team-setup.e2e.test.ts server/shared-computers.e2e.test.ts
+
+echo '== Target test outlines and relevant contexts =='
+ast-grep outline server/team-setup.e2e.test.ts --items all --type function --view expanded
+ast-grep outline server/shared-computers.e2e.test.ts --items all --type function --view expanded
+rg -n -C 12 --type ts \
+  'Patch|existing.*Id|before.*approval|after.*denial|specialist|threadId|timeout|diagnostic|elapsed|pending|connector|proxy|route|status|secret|token|command|contents' \
+  server/team-setup.e2e.test.ts server/shared-computers.e2e.test.ts
+
+echo '== Search for diagnostics helpers and test timeout =='
+rg -n -C 8 --type ts \
+  '15_000|15000|setTimeout|Promise\.race|recent.*event|HTTP|exitCode|connected|stderr|stdout' \
+  server/shared-computers.e2e.test.ts server/testing scripts 2>/dev/null || true
+
+echo '== Current CI =='
+gh pr checks "$pr" --repo "$repo"
+```
+
+Length of output: 200678
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+echo '== Head and follow-up ancestry =='
+git rev-parse HEAD
+git show -s --format='%H%n%P%n%s' 5bf7667c
+git show -s --format='%H%n%P%n%s' 7f436859
+git merge-base --is-ancestor 5bf7667c HEAD && echo '5bf7667c in HEAD'
+git merge-base --is-ancestor 7f436859 HEAD && echo '7f436859 in HEAD'
+echo '== Whitespace check =='
+git diff --check 5bf7667c^..HEAD
+
+echo '== Commit diffs =='
+git diff --unified=30 5bf7667c^ 5bf7667c -- server/team-setup.e2e.test.ts
+git diff --unified=30 7f436859^ 7f436859 -- server/shared-computers.e2e.test.ts
+
+echo '== Targeted source ranges =='
+nl -ba server/team-setup.e2e.test.ts | sed -n '1,260p'
+nl -ba server/shared-computers.e2e.test.ts | sed -n '1,280p'
+```
+
+Length of output: 53080
+
+---
+
+</details>
+
+`@Sunwood-ai-labs`, I completed the review of `5bf7667c` and `7f436859` on current head `7f4368591745ee9980d886ff35aebae58c6eca7a`.
+
+I found no actionable defect.
+
+- `server/team-setup.e2e.test.ts` Lines 32-40 reproduce the `Patch` name collision and capture the complete existing bot-ID set before approval.
+- Lines 95-109 verify that denied and unauthorized requests leave that complete ID set unchanged.
+- Lines 115-120 identify the three created specialists from IDs absent from the original set.
+- Lines 164-165 verify that the original `Patch` bot remains and retains its original `threadId`.
+- The test still covers approval, continuation, cancellation, updates, deletion, and room interruption.
+
+- `server/shared-computers.e2e.test.ts` Lines 38-42 retain the existing `15_000` ms MCP deadline.
+- The timeout error includes the pending operation label, elapsed time, connector state, proxy exit state, and the last 12 transport events.
+- Lines 69-83 record only route names, HTTP status, and elapsed time.
+- The diagnostic records do not include request bodies, authorization headers, pairing tokens, connector secrets, command text, or file contents.
+- The test assertions remain unchanged.
+
+`git diff --check` reported no whitespace errors.
+
+At the reported check time, CLA and six CI jobs had passed. The Linux, macOS, Windows, package, Swift, and Kotlin jobs were still pending. Vercel requires upstream-team authorization. This review does not treat pending jobs as successful.
+
+I used the existing team-setup fixture and timeout-diagnostic guidance during this review.
+
+---
+
+<details>
+<summary>🧠 Learnings used</summary>
+
+```
+Learnt from: Sunwood-ai-labs
+URL: https://github.com/milind-soni/OpenMausBot/pull/1126
+
+Timestamp: 2026-09-13T15:21:51.741Z
+Learning: In `server/shared-computers.e2e.test.ts`, MCP timeout diagnostics must retain the existing 15-second deadline and assertions. Diagnostic output may include operation labels, elapsed time, connector connection state, proxy exit state, and HTTP route/status events, but must not contain pairing tokens, connector secrets, command text, or file contents.
+```
+
+---
+
+```
+Learnt from: Sunwood-ai-labs
+URL: https://github.com/milind-soni/OpenMausBot/pull/1126
+
+Timestamp: 2026-09-13T15:21:51.740Z
+Learning: In `server/team-setup.e2e.test.ts`, test fixtures can contain a pre-existing bot with the same name as a specialist requested by a team-setup plan. Assertions that identify newly created specialists must compare bot IDs against a complete pre-approval existing-ID set, rather than select bots by name. The test must also preserve the original starter bot and its `threadId`.
+```
+
+</details>
+
+_You are interacting with an AI system._
+
+### #1126 Sunwood-ai-labs [2026-09-13T16:04:34Z]
+The remaining Windows timeout has been reproduced and localized on a Windows GitHub runner. PowerShell entered the script in about 220 ms, then stalled while resolving `echo`; a Console-only command finished in 219 ms. Adding WINDIR or COMSPEC did not help. Retaining PSModulePath completed the same echo command and exited successfully in 570 ms. [Controlled comparison](https://github.com/Sunwood-ai-labs/OpenMakiBot/actions/runs/34767172079).
+
+This follow-up retains PSModulePath in the shared-command environment on Windows only. It preserves the existing environment allowlist, command deadlines, MCP deadline, authorization and all end-to-end assertions. Regression coverage verifies that provider credentials, unknown tokens, NODE_OPTIONS and BASH_ENV are not inherited, and that POSIX does not receive the additional variable.
+
+The dedicated Windows production-command check is [recorded separately](https://github.com/Sunwood-ai-labs/OpenMakiBot/actions/runs/34767370035). Full PR CI will verify the complete integrated workflow independently; earlier diagnostic-only commits are not described as root-cause fixes.
+
+
+### #1126 Sunwood-ai-labs [2026-09-13T16:04:36Z]
+@coderabbitai review
+
+
+### #1126 coderabbitai[bot] [2026-09-13T16:05:05Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:6122c72be0143d5a3b6c96ced9d65a0e69a571db52bf6df434ff2059573d803e -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T16:20:18Z]
+@coderabbitai review
+
+### #1126 coderabbitai[bot] [2026-09-13T16:21:17Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:e1109d83def21f69eb53bf3136f5d01d1940ad3833731f19d5a33d45542e216e -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T16:32:28Z]
+@coderabbitai review
+
+### #1126 coderabbitai[bot] [2026-09-13T16:41:12Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:207b4e0235c7ede126e557290a690f579745a09a69a7338b8572ffe0bda46db8 -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-13T18:11:26Z]
+@coderabbitai review
+
+### #1126 coderabbitai[bot] [2026-09-13T18:11:46Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:7c70bae122c64424210130412a3f11c30718332aaceaf75a43b73e62e2dea0da -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-20T14:58:58Z]
+@coderabbitai review
+
+
+### #1126 coderabbitai[bot] [2026-09-20T14:59:20Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:e2bcd7618cdaffe4efe2c9e688ead5fee768dbd87e21a70ffcf7fc615e7aa188 -->
+<details>
+<summary>⚠️ Action not completed</summary>
+
+Pull request base or head changed.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-20T15:07:13Z]
+Addressed both outside-diff findings from [review 5191750735](https://github.com/milind-soni/OpenMausBot/pull/1126#pullrequestreview-5191750735) in af25fe760cd196ab5b9db9dd7efd587cfa8349b8:
+
+- Missing/null incoming routes are unrestricted. Narrowing or retaining them is allowed while unrelated work runs; expanding/clearing a restricted list still requires the existing idle/admin conditions.
+- `currentRoom.members` now uses `roomHandoffProblem` so discovery respects each participant's own section access, as dispatch already does. Chief grants are not lent to other members.
+
+Three focused cases reproduced the previous behavior. The full lifecycle suite plus three-layer discussion and five-group/45-turn pyramid now pass (23 tests); typecheck and lint also pass. The tests preserve the negative dispatch check and verify that an independently authorized reviewer remains visible.
+
+The preceding merge 3458c768 integrates upstream 4b0dabc6 and passed 329 distinct focused tests plus the Windows and packaged-server checks recorded in the PR body. Latest-head hosted CI and review are separate and still pending.
+
+
+### #1126 Sunwood-ai-labs [2026-09-20T15:07:15Z]
+@coderabbitai review
+
+
+### #1126 coderabbitai[bot] [2026-09-20T15:15:14Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:d0d5f9fd41e0145b7f2226a4d31fe0cdfcd98a9249d51867ec1c83cadab6014f -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-20T15:39:50Z]
+@coderabbitai review
+
+
+### #1126 coderabbitai[bot] [2026-09-20T15:39:55Z]
+<!-- This is an auto-generated reply by CodeRabbit -->
+<!-- CodeRabbit review command invocation: v2:30cee6777ea0b6a9c1c991ef0d0ccec4d3be46044f419be83891c02901116080 -->
+<details>
+<summary>✅ Action performed</summary>
+
+Review finished.
+
+> Note: CodeRabbit is an incremental review system and does not re-review already reviewed commits. This command is applicable only when automatic reviews are paused.
+
+</details>
+
+### #1126 Sunwood-ai-labs [2026-09-20T16:03:00Z]
+The final head is fixed at **d5735ec663bae32aca87ffe948dc118f6b582fa1**.
+
+- Both outside-diff findings are fixed. All 18 inline threads are resolved, including the latest busy-poll finding that was withdrawn after checking synchronous admission.
+- CodeRabbit run `c1be09b2-3c77-4617-9460-9bf0db31c444` reviewed `af25fe76..d5735ec6` and reported no actionable comments.
+- All 12 Vitest shards and the other Actions checks passed. The added queue/leaf-race regressions passed locally (31 tests, one existing macOS-only skip).
+- Only the native iOS UI job failed: the iPhone roster assertion timed out, followed by an app-termination failure in the next test. The 462 Swift package tests and simulator build passed. [Job/log](https://github.com/milind-soni/OpenMausBot/actions/runs/35520247943/job/106103168829).
+
+The native code is unchanged from upstream. The preceding PR head passed all eight iPhone and eight iPad UI tests, as did the same native code in the related PR; this comparison does not turn the current failed run into a pass or establish its root cause. I requested a rerun of only the failed job, but GitHub rejected it with HTTP 403 (`Must have admin rights to Repository`). **Could a maintainer rerun the failed iOS job?** No rerun has started, and no empty commit or timeout change was introduced to bypass it. Vercel authorization is also still external to these changes.
+
+

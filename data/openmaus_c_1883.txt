@@ -1,0 +1,40 @@
+### #1883 nevilhulspas [2026-10-09T05:51:27Z]
+Proposed implementation: paired-owner desktop approval for a single conversation.
+
+The immediate use case is a laptop already paired as the workspace owner, viewing its Mac Mini through the saved Tailscale connection. The owner should be able to select Full access for that conversation and confirm the same warning on the laptop, without signing into the Mini interactively.
+
+The security boundary from #801 remains: ordinary HTTP mutations must still reject Full access and Custom. #1729 deliberately preserves that boundary for new-bot defaults; this change must preserve it too. A remote page, a bot token, a chat-only paired device, or an ordinary admin HTTP session is not a trusted desktop approval channel.
+
+Design:
+- Add a narrowly scoped paired-owner desktop capability, bound to the authenticated device, host/workspace, bot, conversation, selected mode, and a fresh expiring request. Keep its authority outside page JavaScript and bot credentials. Revalidate ownership and pairing at use time; fail closed on revocation, replay, wrong origin, or unavailable host desktop.
+- Present the existing Full access warning on the owner's laptop through the trusted desktop surface. The remote renderer may request the flow but cannot authorize it. Do not expose the laptop's local approval bridge indiscriminately to remote pages.
+- Let the packaged host app execute the existing private `set → confirm → activate → finalize → commit` protocol against its embedded server. Preserve inert pending grants and recovery to Ask on ambiguous failure. Remote transport must not become a second HTTP grant implementation.
+- Limit the initial feature to the selected conversation. Other conversations and bot defaults remain unchanged. Retain existing provider support, questions, credential prompts, ownership checks, and audit receipts. Custom remains protected by the same boundary; it must not accidentally become available via HTTP.
+- Show availability only when the paired-owner desktop path and packaged host support it. Standalone/headless self-hosting without that trusted host component remains unsupported by this change; this does not implement the broader workspace/team default proposal in this issue.
+
+Verification will use disposable fixtures: successful owner confirmation and persisted thread state; ordinary HTTP and bot-token rejection (including the existing `scripts/smoke-approval-modes.cjs` checks); chat-only/non-owner/unpaired rejection; revoked pairing, replay, wrong target, cancellation and lost replies; unchanged sibling/default settings; interactive questions and missing credentials. The PR will state which end-to-end checks ran and any remaining limitations.
+
+
+### #1883 nevilhulspas [2026-10-09T05:53:50Z]
+Implementation finding and design clarification: existing companion pairing stores a general device bearer credential, while saved-server connections may use an admin cookie. Neither establishes the separate owner-authorized desktop capability above. Existing pairing must therefore not automatically confer elevation authority.
+
+The implementation will include a one-time owner authorization in the host's trusted packaged app to enroll the laptop's dedicated desktop key. The owner must verify the intended laptop/key, and the grant must be revocable. A general API token or admin cookie cannot create this authorization. The laptop will keep its private key outside page JavaScript and confirm each thread elevation through its trusted native surface. Thereafter the owner can change the conversation's approval level from the laptop without returning to the Mini for each change.
+
+This is an explicit setup prerequisite, not a claim that existing pairing proves ownership. Devices that have not completed enrollment remain ineligible. The host private five-step grant protocol and ordinary HTTP Full/Custom rejection remain required.
+
+
+### #1883 lalitsuryan [2026-10-11T11:06:01Z]
+Same limitation here, so adding another data point and a use case.
+
+**Setup:** official Docker image (`ghcr.io/milind-soni/openmausbot:latest`, built 2026-10-11) from `deploy/docker-compose.yml` with Caddy and HTTPS, on a plain Ubuntu 22.04 VM (not AWS), used from the web UI in a browser paired with Full access. Engine: Antigravity (Gemini).
+
+**What I see:** the composer approval menu ("How should Antigravity actions be approved?") offers only "Ask for approval", "Auto-accept edits" and "Command allowlist", with this note at the bottom: "Auto (full access) is available in the local packaged desktop app." The Command allowlist only accepts one exact, complete command per bot, provider and working folder (no prefixes or wildcards), so it cannot cover tool calls such as `browser_agent_browser_eval` or arbitrary commands. "Always allow this session" works only for the current session.
+
+**Impact:** an agent that browses the web or runs commands on a dedicated server stops at every action until someone clicks Allow, so it cannot work unattended (scheduled routines, background tasks).
+
+**Request:** a supported way to run a bot unattended on a self-hosted or Docker server, in the spirit of the opt-in, admin-enabled, off-by-default workspace setting proposed above, for example:
+- an admin-only "Full access" option for self-hosted servers (with a warning and an audit trail), or
+- pattern-based allow rules (for example by tool name such as `browser_agent_*` or command prefix) that persist across sessions.
+
+The design discussed above (owner approval from a paired desktop app) would not help a headless server that has no desktop app, so a server-side admin option, or at least persistent pattern rules, would be needed for that case.
+

@@ -1,0 +1,41 @@
+### #4376 AdityaUmale [2026-11-04T07:22:32Z]
+I couldn't reproduce this on Linux: `agents_vm_exec` runs on the Local VM, and oMLX serves models on a Mac, so neither runs on the Linux machine I test on. The report also doesn't include the error from the failed step (open the failed `agents_vm_exec` step in the chat to see it), and without it I can't find a likely cause in the code. Leaving this open for someone who can test on a Mac.
+
+### #4376 rafitigay [2026-11-04T19:07:29Z]
+Hi @AdityaUmale here is more info the bot provided after doing some research.
+
+It's not the exact same error, but I'm having this issue on multiple tool calls.
+
+"The error marker was written at 1:33:39 PM Eastern (18:33:39 UTC). The failed call that caused it was at 1:32:13 PM. Here's the whole turn, in order — it started at 1:29:27 PM when you said "yeah":
+
+1:29:27  you: "yeah"
+1:29:48  (model notice — NewQwen answered after a slow start)
+1:30:18  check SSH config + list desktop apps
+1:30:52  run the rustedbucket health read; launch Firefox
+1:31:24  (rustedbucket healthy) — try to attach the browser tools
+1:31:33  (can't attach to Firefox ESR) — read the window via accessibility
+1:32:13  ✗ computer_run_steps — step 1 of 4 failed, click refused
+1:32:47  re-snapshot the window
+1:33:03  ✓ computer_run_steps — retry by pixel: 4/4 ok
+1:33:27  (browser test worked) — close Firefox
+1:33:39  my "Done — full spread tested" reply
+1:33:39  ✗ terminal marker: "Stopped because the tool call computer_run_steps failed"
+The refused click, exactly as logged:
+
+click: element [22] (pid 2235) has a snapshot frame at (666, 116), but that screen point is owned by page tab list (unnamed) rather than the observed element; a real pointer click there would hit the wrong control.
+
+Error code: element_bounds_unavailable. So the address bar's reported position landed on the tab strip, and the tool correctly refused to fire a real click there.
+
+The recovery: I re-snapshotted, clicked by pixel at (500, 64) instead, typed the URL, pressed enter — 4/4 steps ok, example.com loaded, then I closed Firefox. So the work genuinely finished.
+
+Why it's flagged failed anyway: OpenMausBot marks a turn turnSucceeded=false if any tool call in it returns ok:false, even when the model recovers on a retry. That one refused click is what set the flag, which is what fires the "Stopped because" message and Kayla's retry. The work was done; the turn is just stamped failed because of that single refused step."
+
+Does that help?
+
+### #4376 rafitigay [2026-11-05T20:16:25Z]
+Well after several days of frustration, I think I got it figured out.
+
+Commit 6371611 addresses this issue with local models, except that fix only kicks in when you are using a local address. It's possible, such as in my case, that you have a local model connected over a vpn, so we were using https. Because of that the items that Commit 6371611 addresses did not kick in.
+
+There needs to be a way to apply the fixes from Commit 6371611 to non local addresses. Like a checkbox.
+

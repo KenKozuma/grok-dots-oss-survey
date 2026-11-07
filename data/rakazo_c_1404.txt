@@ -1,0 +1,47 @@
+### #1404 crobinson42 [2026-10-15T14:34:24Z]
+@richardARPANET you sound like a Karen 😂 "_failing to bother debugging and fixing itself. Ultimately wasting all my time and never doing the job._"
+
+Did you investigate at all - I ran into this issue and i'm going to try and fix w/ a PR, which is what opensource stands for 💪
+
+
+### #1404 richardARPANET [2026-10-15T14:36:06Z]
+> 2\. [@richardARPANET](https://github.com/richardARPANET) you sound like a Karen 😂 "_failing to bother debugging and fixing itself. Ultimately wasting all my time and never doing the job._"
+>     Did you investigate at all - I ran into this issue and i'm going to try and fix w/ a PR, which is what opensource stands for 💪
+
+Wind in your neck, user feedback is worth it's weight in gold. Do with it what you wish.
+
+### #1404 CyrisXD [2026-10-18T21:44:12Z]
+@richardARPANET This sounds more like a model problem, what model are you using with Rakazo? 
+
+### #1404 balabommablock-cpu [2026-10-20T11:34:31Z]
+I think this one is mostly product, not model, so here's a small idea.
+
+**Problem.** When something fails, the bot hands the problem straight back to the person ("can you check the key?"). After a few rounds, doing it yourself is faster. That's the moment people leave.
+
+**Simpler fix.** One rule in the system prompt and the runner: *try twice before you ask, and never ask the same thing twice.*
+1. On a failure, the bot first tries to find out why itself (read the error, test the credential, check the docs) before asking.
+2. If it still has to ask, it asks once, with what it tried and the exact thing it needs.
+3. The runner keeps a short list of questions already asked in this task. A repeat gets blocked and turned into "here's what I tried, here's where I'm stuck".
+
+**What to cut.** Open-ended "please check X" asks. They should become one clear ask or nothing.
+
+**How we'd know.** Count asks per finished task. If that number drops and finished tasks don't, it worked.
+
+Happy to take a stab at step 3 if that sounds right.
+
+
+### #1404 fouxdufa [2026-10-24T15:24:02Z]
+Same here
+
+### #1404 elie222 [2026-10-25T14:54:21Z]
+Merged #2153 to address one failure mode visible in the screenshots: a shell command blocked before execution could be mistaken for rejected credentials. The relevant tool error now suggests a supported authentication approach and explains that the refusal does not establish that the credential is invalid.
+
+This is a targeted improvement. We have not verified the complete Graylog setup or the broader repeated-question behavior as fixed, so this issue remains open. If this still happens on current edge, the model used and a redacted tool error would help us reproduce it.
+
+
+### #1404 elie222 [2026-10-25T16:03:58Z]
+Closing following the targeted improvement in #2153. Blocked shell-substitution commands now return authentication recovery guidance instead of leaving the agent without a next step. The full Graylog workflow and broader repeated-question behavior have not been verified as fixed; please comment here if the problem persists on current edge.
+
+### #1404 richardARPANET [2026-11-04T16:49:07Z]
+I gave this another try today, it still cannot connect this MCP (which Grokbot does with ease)
+

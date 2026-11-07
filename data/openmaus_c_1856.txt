@@ -1,0 +1,28 @@
+### #1856 santhiprakash [2026-09-30T08:06:05Z]
+PR #2042 merged: the openai-compat driver now records the mounted tool names in the native tee for each provider request, so the next release will show exactly which tools left OpenMausBot toward your LiteLLM upstream.
+
+Once a release containing it ships (0.1.92+), rerun the same turn and check the native tee's outgoing record for the `tools` list. If `computer_screenshot` / `computer_click` / `computer_open_url` appear there, the mount is healthy on the OpenMausBot side and the loss is downstream in the proxy hop; if they are absent, that pins it inside the server and the tee record gives the exact request to compare.
+
+### #1856 mohitnigah786-a11y [2026-10-19T06:35:17Z]
+Verified on current main (1da83432c): I could not reproduce an OpenMausBot-side mount failure, so I am not sending a fix. Details, so the next step is crisp:
+
+What is green on main (real server, openai-compat instance, Local VM fixture, per-bot isolation):
+- server/openai-compat-vm.e2e.test.ts 3/3: strict Works-on-VM turn sends computer_screenshot/click/type_text/open_url to the provider and records them in the native tee; select_computer continuation also mounts them; claudeAgent control mounts the same bridge.
+- Extra probe I ran (thread-level model override to openaiCompat with a Claude bot default, strict VM): computer_* tools present in the provider request. PASS (probe reverted after the run).
+- server/drivers/openai-chat.test.ts 49/49, server/approval-mode.test.ts 26/26.
+
+Why I believe the OMB side sends the tools: harness gates are capability-based and your snapshot shows all three true (server/index.ts attachLocalVm + browser mount read live adapter.capabilities, the same source /api/instances reports); mountChatTools (server/drivers/chat-mcp-tools.ts) mounts localComputer/browser whenever present with no engine comparison, and a harness-mount failure fails the turn loudly instead of dropping tools silently; openai-chat sends every mounted definition verbatim. Real Cua schemas (35 tools, plain properties/required/enums) carry nothing a proxy should choke on.
+
+So: if the model still sees only agents tools on a current build, the loss is downstream of OMB (LiteLLM proxy/model) or in the real-podman/Cua leg, not in the mount decision. The exact discriminator is the #2042 tee: on 0.1.92+, rerun the same turn and paste the native tee's outgoing tools list. If computer_* is there, OMB sent them and the proxy dropped them; if absent, paste the turn's server log lines too and I will dig further. Leaving open pending that data.
+
+### #1856 sp960817 [2026-10-31T03:20:46Z]
+Reproduced on 0.1.134 (self-hosted Docker image on a Linux NAS; the harness runs inside the server container, so this deployment offers only the Local VM — "this computer" has no desktop surface here).
+
+Setup: a bot whose default engine is not openai-compat. One thread had its model overridden to an openai-compat instance (an OpenAI-compatible endpoint, deepseek-v4.1-flash) and kept the Local VM as its computer; that thread's surface had resolved to `vm`.
+
+What happens: in that thread the agent reports it only has the computer-selection tool. Calling it with `{"surface":"auto"}` resolves to the Local VM and is accepted, and `{"surface":"vm"}` is accepted too, but afterwards there are still no screen, click, type, open-url or file tools — the agent can only see the VM's own workspace directory, and files that exist on the machine running the harness are invisible to it. New turns in the same thread behave the same.
+
+Control: same bot, same thread, same running VM. Switching that thread's model back to the bot's default engine takes effect immediately: on the next turn the agent has its normal tools and can read its workspace and run its scripts again. Nothing about the VM or the container changed in between.
+
+So on my side the failure tracks the thread-level openai-compat override, not the VM state. Happy to dump the native tee's outgoing tool list (0.1.134 includes #2042) if that helps show whether the computer tool definitions ever reach the provider.
+

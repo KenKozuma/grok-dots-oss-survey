@@ -1,0 +1,33 @@
+### #2153 vercel[bot] [2026-10-25T13:16:19Z]
+[vc]: #1PmLNTBiSe/GTtnEEmT3P3+Oy1HS3yWOTDLLniGThCg=:eyJpc01vbm9yZXBvIjp0cnVlLCJ0eXBlIjoiZ2l0aHViIiwicHJvamVjdHMiOlt7Im5hbWUiOiJyYWthem8td3d3IiwicHJvamVjdElkIjoicHJqXzdNQWhMaThuMjhDVUs5bFM0MXdkZVhBOG1qQnYiLCJsaXZlRmVlZGJhY2siOnsicmVzb2x2ZWQiOjAsInVucmVzb2x2ZWQiOjAsInRvdGFsIjowLCJsaW5rIjoiIn0sImluc3BlY3RvclVybCI6Imh0dHBzOi8vdmVyY2VsLmNvbS9pbmJveC16ZXJvL3Jha2F6by13d3cvRTZKUzcxcVdhM1F1SllUaGo3Z2loSmNvaHRESiIsInByZXZpZXdVcmwiOiIiLCJuZXh0Q29tbWl0U3RhdHVzIjoiU0tJUFBFRCIsInJvb3REaXJlY3RvcnkiOiJhcHBzL3d3dyJ9XSwicmVxdWVzdFJldmlld1VybCI6Imh0dHBzOi8vdmVyY2VsLmNvbS92ZXJjZWwtYWdlbnQvcmVxdWVzdC1yZXZpZXc/b3duZXI9ZWxpZTIyMiZyZXBvPXJha2F6byZwcj0yMTUzIn0=
+The latest updates on your projects. Learn more about [Vercel for GitHub](https://vercel.link/github-learn-more).
+
+
+<details><summary>1 Skipped Deployment</summary>
+
+| Project | Deployment | Actions | Updated |
+| :--- | :----- | :------ | :------ |
+| <a href="https://vercel.com/inbox-zero/rakazo-www"><sup><img src="https://vercel.com/api/www/avatar?projectId=prj_7MAhLi8n28CUK9lS41wdeXA8mjBv&teamId=team_bTnH0swVEcjOm3gy7AvBV7rO&s=32" width="16" height="16" align="middle" alt="" /></sup></a> [rakazo-www](https://vercel.com/inbox-zero/rakazo-www) | ![Skipped](https://vercel.com/static/status/canceled.svg) [Skipped](https://vercel.com/inbox-zero/rakazo-www/E6JS71qWa3QuJYThj7gihJcohtDJ) |  | <relative-time datetime="2026-10-25T13:45:35.854Z">Oct 25, 2026 1:45pm UTC</relative-time> |
+</details>
+
+<a href="https://vercel.com/vercel-agent/request-review?owner=elie222&repo=rakazo&pr=2153" rel="noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://agents-vade-review.vercel.sh/request-review-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://agents-vade-review.vercel.sh/request-review-light.svg"><img src="https://agents-vade-review.vercel.sh/request-review-light.svg" alt="Request Review"></picture></a>
+
+
+
+### #2153 greptile-apps[bot] [2026-10-25T13:18:47Z]
+<!-- greptile_summary -->
+
+<h2><a href="https://app.greptile.com/api/retrigger?id=87649390"><picture><source media="(prefers-color-scheme: dark)" srcset="https://greptile-static-assets.s3.amazonaws.com/badges/RetriggerDark.svg?v=2"><source media="(prefers-color-scheme: light)" srcset="https://greptile-static-assets.s3.amazonaws.com/badges/Retrigger.svg?v=2"><img alt="Retrigger" src="https://greptile-static-assets.s3.amazonaws.com/badges/Retrigger.svg?v=2" align="right"></picture></a><a href="https://app.greptile.com/inbox-zero/github/elie222/rakazo/-/pull/2153"><picture><source media="(prefers-color-scheme: dark)" srcset="https://greptile-static-assets.s3.amazonaws.com/badges/ViewInGreptileDark.svg?v=2"><source media="(prefers-color-scheme: light)" srcset="https://greptile-static-assets.s3.amazonaws.com/badges/ViewInGreptile.svg?v=2"><img alt="View in Greptile" src="https://greptile-static-assets.s3.amazonaws.com/badges/ViewInGreptile.svg?v=2" align="right"></picture></a>Confidence Score: 5/5</h2>
+
+**[Medium impact]** The PR appears safe to merge; no new actionable issues were found.
+
+<h3>Summary</h3>
+
+Adds authentication recovery advice when the desktop guard blocks command substitution or backticks.
+- Blocked authentication commands now point to safer ways to send the request.
+- The create-menu test confirms its button is visible.
+
+<!-- greptile_confidence_score:5 -->
+
+<sub>Reviews (3) · Last reviewed commit: ["Wait for the sidebar before testing its ..."](https://github.com/elie222/rakazo/commit/d608351d1dad61941742b3514d9794dbdb796c3d) · [Reviewed by Greptile](https://www.greptile.com/?utm_source=greptile_review&utm_medium=github&utm_campaign=review_public&utm_content=elie222/rakazo)</sub>
+
